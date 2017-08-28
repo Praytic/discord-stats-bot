@@ -1,44 +1,40 @@
 package com.vchernogorov.discordbot
 
-import khttp.get
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import net.dv8tion.jda.core.AccountType
+import net.dv8tion.jda.core.JDA
 import net.dv8tion.jda.core.JDABuilder
-import net.dv8tion.jda.core.entities.Game
-import net.dv8tion.jda.core.entities.User
-import org.json.JSONException
-import java.util.*
-import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.TimeUnit
-import kotlin.concurrent.timerTask
+import net.dv8tion.jda.core.entities.MessageChannel
+import net.dv8tion.jda.core.events.message.MessageReceivedEvent
+import java.io.File
+import java.util.stream.Collectors
 
-class Bot {
+val gson = Gson()
+var token: String? = null
+val jda: JDA by lazy {
+  JDABuilder(AccountType.BOT)
+          .addEventListener(OwnerCommandListener())
+      .setToken(token ?: throw Exception("Token wasn't populated."))
+      .build()
+}
 
-  companion object {
-    val bindedBattletags = ConcurrentHashMap<User, String>()
-    val battletagRanks = ConcurrentHashMap<User, Int>()
-    val jda = JDABuilder(AccountType.BOT)
-        .addEventListener(BotListener())
-        .setToken("MzE3Njg2NDA2MzU1MDkxNDU2.DAwpLw.0dfNNvkX08I0SZ5kGQkNrdn2xv8")
-        .buildAsync()
-  }
+fun main(args: Array<String>) {
+  token = "MzE3Njg2NDA2MzU1MDkxNDU2.DAwpLw.0dfNNvkX08I0SZ5kGQkNrdn2xv8"
+  jda
+}
 
-  init {
-    Timer().scheduleAtFixedRate(timerTask {
-      println("Refresh stats for ${bindedBattletags.keys}.")
-      bindedBattletags.forEach {
-        try {
-          TimeUnit.SECONDS.sleep(1)
-          val rank = get("https://owapi.net/api/v3/u/${it.value}/stats")
-              .jsonObject.getJSONObject("eu")
-              .getJSONObject("stats")
-              .getJSONObject("competitive")
-              .getJSONObject("overall_stats")
-              .getInt("comprank")
-          battletagRanks.put(it.key, rank)
-        } catch (ex: JSONException) {
-          jda.presence.game = Game.of("Bad")
-        }
-      }
-    }, Date(), TimeUnit.MINUTES.toMillis(1))
-  }
+inline fun <reified T> Gson.fromJson(json: String) =
+    this.fromJson<T>(json, object: TypeToken<T>() {}.type)
+
+fun MessageChannel.getMessages(limit: Long) =
+    this.iterableHistory.stream().limit(limit).collect(Collectors.toList())
+
+fun MessageReceivedEvent.send(message: String) =
+    textChannel.sendMessage(net.dv8tion.jda.core.MessageBuilder().append(message).build())
+
+fun File.createEverything(): File {
+  parentFile.mkdirs()
+  createNewFile()
+  return this
 }

@@ -5,9 +5,13 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version" // Required for Kotlin integration
-        classpath "net.dv8tion:JDA:3.1.0_206"
+        classpath 'com.google.guava:guava:23.0'
+        classpath "org.jsoup:jsoup:1.10.3"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath "net.dv8tion:JDA:3.8.0_436"
         classpath "khttp:khttp:0.1.0"
+        classpath 'com.google.code.gson:gson:2.8.1'
+        classpath 'com.google.auto.service:auto-service:1.0-rc2'
     }
 }
 
@@ -16,7 +20,13 @@ repositories {
 }
 
 apply plugin: 'java'
-apply plugin: 'kotlin' // Required for Kotlin integration
+apply plugin: 'kotlin'
+
+kotlin {
+    experimental {
+        coroutines 'enable'
+    }
+}
 
 jar {
     baseName = 'java-sample-app'
@@ -30,45 +40,15 @@ jar {
 }
 
 dependencies {
-    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version" // Required for Kotlin integration
-    compile "net.dv8tion:JDA:3.1.0_206"
+    compile 'com.google.guava:guava:23.0'
+    compile "org.jetbrains.kotlinx:kotlinx-coroutines-core:0.16"
+    compile "org.jsoup:jsoup:1.10.3"
+    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    compile "net.dv8tion:JDA:3.8.0_436"
     compile "khttp:khttp:0.1.0"
-}
-
-dependencies {
-    compile "net.dv8tion:JDA:3.1.0_206"
-    compile "khttp:khttp:0.1.0"
-    compile files("lib/aws-java-sdk-core-1.11.67.jar")
-    compile files("lib/aws-java-sdk-kms-1.11.67.jar")
-    compile files("lib/aws-java-sdk-s3-1.11.67.jar")
-    compile files("lib/aws-xray-recorder-sdk-aws-sdk-1.0.5-beta.jar")
-    compile files("lib/aws-xray-recorder-sdk-core-1.0.5-beta.jar")
-    compile files("lib/commons-beanutils-1.9.2.jar")
-    compile files("lib/commons-codec-1.9.jar")
-    compile files("lib/commons-collections-3.2.2.jar")
-    compile files("lib/commons-digester-1.8.1.jar")
-    compile files("lib/commons-logging-1.2.jar")
-    compile files("lib/commons-validator-1.5.1.jar")
-    compile files("lib/httpclient-4.5.2.jar")
-    compile files("lib/httpcore-4.4.4.jar")
-    compile files("lib/ion-java-1.0.1.jar")
-    compile files("lib/jackson-annotations-2.6.0.jar")
-    compile files("lib/jackson-core-2.6.6.jar")
-    compile files("lib/jackson-databind-2.6.6.jar")
-    compile files("lib/jackson-dataformat-cbor-2.6.6.jar")
-    compile files("lib/javax.servlet-api-3.1.0.jar")
-    compile files("lib/jetty-continuation-9.4.0.RC2.jar")
-    compile files("lib/jetty-http-9.4.0.RC2.jar")
-    compile files("lib/jetty-io-9.4.0.RC2.jar")
-    compile files("lib/jetty-security-9.4.0.RC2.jar")
-    compile files("lib/jetty-server-9.4.0.RC2.jar")
-    compile files("lib/jetty-servlet-9.4.0.RC2.jar")
-    compile files("lib/jetty-servlets-9.4.0.RC2.jar")
-    compile files("lib/jetty-util-9.4.0.RC2.jar")
-    compile files("lib/jetty-webapp-9.4.0.RC2.jar")
-    compile files("lib/jetty-xml-9.4.0.RC2.jar")
-    compile files("lib/jmespath-java-1.0.jar")
-    compile files("lib/joda-time-2.8.1.jar")
+    compile 'com.google.code.gson:gson:2.8.1'
+    compile 'com.google.auto.service:auto-service:1.0-rc2'
+    kapt 'com.google.auto.service:auto-service:1.0-rc2'
 }
 
 task wrapper(type: Wrapper) {

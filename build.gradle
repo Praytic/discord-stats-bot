@@ -1,6 +1,5 @@
 buildscript {
-    ext.kotlin_version = '1.2.51' // Required for Kotlin integration
-    ext.spring_boot_version = '1.5.4.RELEASE'
+    ext.kotlin_version = '1.2.51'
     repositories {
         jcenter()
     }
@@ -15,6 +14,10 @@ buildscript {
     }
 }
 
+plugins {
+    id "io.ratpack.ratpack-groovy" version "1.5.4"
+}
+
 repositories {
     jcenter()
 }
@@ -22,8 +25,6 @@ repositories {
 apply plugin: 'java'
 apply plugin: 'kotlin'
 apply plugin: 'kotlin-kapt'
-apply plugin: 'war'
-apply from: 'https://raw.github.com/gretty-gradle-plugin/gretty/master/pluginScripts/gretty.plugin'
 
 kotlin {
     experimental {
@@ -31,19 +32,16 @@ kotlin {
     }
 }
 
-//jar {
-//    baseName = 'discord-stats-bot'
-//    version =  'v1'
-//    manifest {
-//        attributes('Main-Class': 'com.vchernogorov.discordbot.BotKt')
-//    }
-//    from {
-//        configurations
-//                .compile
-//                .findAll { !it.name.endsWith('pom') }
-//                .collect { it.isDirectory() ? it : zipTree(it) }
-//    }
-//}
+compileKotlin {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+}
+
+mainClassName = "com.vchernogorov.discordbot.BotKt"
 
 dependencies {
     compile 'com.github.jsimone:webapp-runner:8.5.11.3'
@@ -60,17 +58,6 @@ task wrapper(type: Wrapper) {
     gradleVersion = '4.10.2'
 }
 
-task stage() {
-    dependsOn clean, war
+task stage {
+    dependsOn installDist
 }
-war.mustRunAfter clean
-
-task copyToLib(type: Copy) {
-    into "$buildDir/server"
-    from(configurations.compile) {
-        include "webapp-runner*"
-    }
-}
-
-stage.dependsOn(copyToLib)
-

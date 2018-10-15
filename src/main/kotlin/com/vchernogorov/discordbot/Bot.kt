@@ -7,25 +7,33 @@ import net.dv8tion.jda.core.JDA
 import net.dv8tion.jda.core.JDABuilder
 import net.dv8tion.jda.core.entities.MessageChannel
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
+import ratpack.server.BaseDir
+import ratpack.server.RatpackServer.start
 import java.io.File
 import java.util.stream.Collectors
+
 
 val gson = Gson()
 var token: String? = null
 val jda: JDA by lazy {
   JDABuilder(AccountType.BOT)
-          .addEventListener(OwnerCommandListener())
+      .addEventListener(OwnerCommandListener())
       .setToken(token ?: throw Exception("Token wasn't populated."))
       .build()
 }
 
 fun main(args: Array<String>) {
+  start {
+    it.serverConfig {
+      it.baseDir(BaseDir.find()).env()
+    }
+  }
   token = "MzE3Njg2NDA2MzU1MDkxNDU2.DAwpLw.0dfNNvkX08I0SZ5kGQkNrdn2xv8"
   jda
 }
 
 inline fun <reified T> Gson.fromJson(json: String) =
-    this.fromJson<T>(json, object: TypeToken<T>() {}.type)
+    this.fromJson<T>(json, object : TypeToken<T>() {}.type)
 
 fun MessageChannel.getMessages(limit: Long) =
     this.iterableHistory.stream().limit(limit).collect(Collectors.toList())

@@ -31,21 +31,22 @@ kotlin {
     }
 }
 
-jar {
-    baseName = 'discord-stats-bot'
-    version =  'v1'
-    manifest {
-        attributes('Main-Class': 'com.vchernogorov.discordbot.BotKt')
-    }
-    from {
-        configurations
-                .compile
-                .findAll { !it.name.endsWith('pom') }
-                .collect { it.isDirectory() ? it : zipTree(it) }
-    }
-}
+//jar {
+//    baseName = 'discord-stats-bot'
+//    version =  'v1'
+//    manifest {
+//        attributes('Main-Class': 'com.vchernogorov.discordbot.BotKt')
+//    }
+//    from {
+//        configurations
+//                .compile
+//                .findAll { !it.name.endsWith('pom') }
+//                .collect { it.isDirectory() ? it : zipTree(it) }
+//    }
+//}
 
 dependencies {
+    compile 'com.github.jsimone:webapp-runner:8.5.11.3'
     compile 'com.google.guava:guava:23.0'
     compile "org.jetbrains.kotlinx:kotlinx-coroutines-core:0.16"
     compile "org.jsoup:jsoup:1.10.3"
@@ -59,6 +60,17 @@ task wrapper(type: Wrapper) {
     gradleVersion = '4.10.2'
 }
 
-task stage(dependsOn: ['build', 'clean'])
-build.mustRunAfter clean
+task stage() {
+    dependsOn clean, war
+}
+war.mustRunAfter clean
+
+task copyToLib(type: Copy) {
+    into "$buildDir/server"
+    from(configurations.compile) {
+        include "webapp-runner*"
+    }
+}
+
+stage.dependsOn(copyToLib)
 

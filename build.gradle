@@ -30,10 +30,16 @@ kotlin {
 }
 
 jar {
-    baseName = 'discord-stats-bot'
-    version =  'v1'
+    baseName = 'java-sample-app'
+    version =  'v3'
     manifest {
         attributes('Main-Class': 'com.vchernogorov.discordbot.BotKt')
+    }
+    from {
+        configurations
+                .compile
+                .findAll { !it.name.endsWith('pom') }
+                .collect { it.isDirectory() ? it : zipTree(it) }
     }
 }
 
@@ -42,11 +48,9 @@ dependencies {
     compile "org.jetbrains.kotlinx:kotlinx-coroutines-core:0.16"
     compile "org.jsoup:jsoup:1.10.3"
     compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-    compile "net.dv8tion:JDA:3.8.0_436"
+    compile "net.dv8tion:JDA:3.8.1_438"
     compile "khttp:khttp:0.1.0"
     compile 'com.google.code.gson:gson:2.8.1'
-    compile 'com.google.auto.service:auto-service:1.0-rc2'
-    kapt 'com.google.auto.service:auto-service:1.0-rc2'
 }
 
 task wrapper(type: Wrapper) {

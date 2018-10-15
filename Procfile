@@ -1,1 +1,1 @@
-web: java -jar build/libs/java-sample-app-v3.jar
+web: java $JAVA_OPTS -Dserver.port=$PORT -jar build/libs/discord-stats-bot-v1.jar

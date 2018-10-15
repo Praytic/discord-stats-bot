@@ -20,6 +20,7 @@ val jda: JDA by lazy {
 }
 
 fun main(args: Array<String>) {
+  println(System.getenv("PORT"))
   token = "MzE3Njg2NDA2MzU1MDkxNDU2.DAwpLw.0dfNNvkX08I0SZ5kGQkNrdn2xv8"
   jda
 }

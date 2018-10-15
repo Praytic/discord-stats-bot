@@ -29,6 +29,14 @@ kotlin {
     }
 }
 
+jar {
+    baseName = 'discord-stats-bot'
+    version =  'v1'
+    manifest {
+        attributes('Main-Class': 'com.vchernogorov.discordbot.BotKt')
+    }
+}
+
 dependencies {
     compile 'com.google.guava:guava:23.0'
     compile "org.jetbrains.kotlinx:kotlinx-coroutines-core:0.16"

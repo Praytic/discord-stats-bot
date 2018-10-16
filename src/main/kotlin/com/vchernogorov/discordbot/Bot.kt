@@ -28,7 +28,7 @@ fun main(args: Array<String>) {
       it.baseDir(BaseDir.find()).env()
     }
   }
-  token = "MzE3Njg2NDA2MzU1MDkxNDU2.DAwpLw.0dfNNvkX08I0SZ5kGQkNrdn2xv8"
+  token = System.getenv("BOT_TOKEN")
   jda
 }
 

@@ -14,7 +14,6 @@ import java.util.concurrent.TimeUnit
 import org.jetbrains.exposed.sql.*
 import java.net.URI
 
-val properties = mutableMapOf<String, Any>()
 val gson = Gson()
 val scheduledExecutor = Executors.newScheduledThreadPool(1)
 val db: Database by lazy {
@@ -37,10 +36,6 @@ fun main(args: Array<String>) {
   db
 
   val token = System.getenv("BOT_TOKEN")
-  properties.putAll(File("properties.json").bufferedReader().use {
-    gson.fromJson<Map<String, Any>>(it.readText())
-  })
-
   val jda = try {
     val jda = JDABuilder(AccountType.BOT)
         .addEventListener(OwnerCommandListener())

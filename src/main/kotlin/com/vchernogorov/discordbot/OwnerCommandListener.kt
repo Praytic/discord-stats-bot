@@ -8,8 +8,7 @@ import java.lang.IllegalArgumentException
 class OwnerCommandListener : ListenerAdapter() {
 
   val tasks = mapOf(
-      Mode.MESSAGES_STATS to ChannelStatsTask(),
-      Mode.GATHER_STATS to GatherStatsTask(),
+      Mode.CHANNEL_STATS to ChannelStatsTask(),
       Mode.USER_STATS to UserStatsTask()
   )
   val ownerId = 278592046124761088L

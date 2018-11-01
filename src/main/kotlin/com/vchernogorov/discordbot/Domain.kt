@@ -1,10 +1,14 @@
 package com.vchernogorov.discordbot
 
-import net.dv8tion.jda.core.entities.Message
+import org.jetbrains.exposed.sql.Table
+import java.time.LocalDate
 import java.time.OffsetDateTime
+import java.time.Period
 
 data class UserStat(
     val user: String,
+    val activePeriod: Period,
+    val activeDays: List<LocalDate>,
     val messages: Int,
     val messageLengthAvg: Double,
     val messagesPerActiveDay: Double,
@@ -13,21 +17,28 @@ data class UserStat(
     val stringOccurrence: Map<String, Int>
 )
 
-data class UserMessage(
-    val id: String,
-    val channelId: String,
-    val content: String,
-    val creatorId: String?,
-    val creationDate: OffsetDateTime?
-) {
-  constructor(message: Message) :
-      this(message.id, message.channel.id, message.contentRaw, message.member?.user?.id, message.creationTime)
+object UserMessage : Table() {
+  val id = varchar("id", 20).primaryKey()
+  val channelId = varchar("channel_id", 20)
+  val content = varchar("content", 2000)
+  val creatorId = varchar("creator_id", 20).nullable()
+  val creationDate = datetime("creation_date")
 }
 
 enum class Mode {
-  MESSAGES_STATS,
-  USERS_STATS,
-  GATHER_STATS,
+  CHANNEL_STATS,
   USER_STATS,
+  PRINT_STATS,
   UNDEFINED
+}
+
+enum class StatType {
+  MSG,
+  MSG_AVG,
+  MSG_AVG_ACT,
+  MSG_LEN_AVG,
+  JOIN_DATE,
+  STR_OCCR,
+  ACT_PRD,
+  ACT_DAYS,
 }

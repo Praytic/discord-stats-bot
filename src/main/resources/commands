@@ -1,0 +1,16 @@
+command                              / limit     / user      / channel   / mode
+USER_STATS                           / None      / Current   / All       / ALL
+USER_STATS <User>                    / None      / <User>    / All       / ALL
+USER_STATS <Channel>                 / <None     / Current   / <Channel> / ALL
+USER_STATS <Limit>                   / <Limit>   / Current   / All       / ALL
+USER_STATS <Mode>                    / None      / Current   / All       / <Mode>
+USER_STATS <Users>                   / None      / <Users>   / All       / ALL
+USERS_STATS                          / None      / All       / All       / MSG
+USERS_STATS <User>                   / Invalid request
+USERS_STATS <Channel>                / None      / All       / <Channel> / MSG
+USERS_STATS <Limit>                  / <Limit>   / All       / All       / MSG
+USERS_STATS <Mode>                   / None      / All       / All       / <Mode>
+USERS_STATS <Users>                  / None      / <Users>   / All       / MSG
+
+
+

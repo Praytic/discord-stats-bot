@@ -1,17 +1,23 @@
 package com.vchernogorov.discordbot
 
+import net.dv8tion.jda.core.entities.Message
+import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.transactions.transaction
+import org.joda.time.DateTime
 import java.io.File
 
-fun loadMessages(path: String): List<UserMessage> {
-  File(path).bufferedReader().use {
-    return gson.fromJson<List<UserMessage>>(it.readText())
+fun uploadMessages(elements: Iterable<Message>) = transaction {
+  UserMessage.batchInsert(elements, ignore = true) {
+    this[UserMessage.id] = it.id
+    this[UserMessage.channelId] = it.channel.id
+    this[UserMessage.creationDate] = DateTime(it.creationTime.toEpochSecond())
+    this[UserMessage.creatorId] = it.author.id
+    this[UserMessage.content] = it.contentRaw
   }
 }
 
-fun loadAllMessages(path: String): List<UserMessage> {
-  val allUserMessages = mutableListOf<UserMessage>()
-  File(path).listFiles().forEach {
-    allUserMessages.addAll(loadMessages(it.path))
-  }
-  return allUserMessages
+fun lastSavedMessage(channelId: String) = transaction {
+  UserMessage.select {
+    UserMessage.channelId.eq(channelId)
+  }.minBy { it[UserMessage.creationDate] }
 }

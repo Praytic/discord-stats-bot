@@ -52,6 +52,9 @@ dependencies {
     compile "net.dv8tion:JDA:3.8.1_438"
     compile "khttp:khttp:0.1.0"
     compile 'com.google.code.gson:gson:2.8.1'
+    compile 'org.jetbrains.exposed:exposed:0.11.2'
+    compile 'mysql:mysql-connector-java:5.1.6'
+
 }
 
 task wrapper(type: Wrapper) {

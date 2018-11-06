@@ -20,7 +20,7 @@ data class UserStat(
 object UserMessage : Table() {
   val id = varchar("id", 20).primaryKey()
   val channelId = varchar("channel_id", 20)
-  val content = varchar("content", 2000)
+  val content = varchar("content", 2000, collate = "utf8_unicode_ci")
   val creatorId = varchar("creator_id", 20).nullable()
   val creationDate = datetime("creation_date")
 }

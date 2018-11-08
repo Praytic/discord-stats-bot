@@ -9,6 +9,7 @@ import net.dv8tion.jda.core.AccountType
 import net.dv8tion.jda.core.JDABuilder
 import net.dv8tion.jda.core.entities.Message
 import net.dv8tion.jda.core.entities.TextChannel
+import org.jetbrains.exposed.exceptions.ExposedSQLException
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -102,7 +103,7 @@ suspend fun retryIO(
   repeat(times - 1) {
     try {
       return block()
-    } catch (e: IOException) {
+    } catch (e: ExposedSQLException) {
       attempt++
       println("Retry attempt number $attempt after ${currentDelay/1000.0} seconds.")
       // you can log an error here and/or make a more finer-grained

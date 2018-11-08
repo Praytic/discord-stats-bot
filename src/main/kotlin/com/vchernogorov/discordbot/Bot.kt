@@ -1,10 +1,7 @@
 package com.vchernogorov.discordbot
 
 import com.google.gson.Gson
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.yield
+import kotlinx.coroutines.*
 import net.dv8tion.jda.core.AccountType
 import net.dv8tion.jda.core.JDABuilder
 import net.dv8tion.jda.core.entities.Message
@@ -40,9 +37,13 @@ fun main(args: Array<String>) {
   }
 
   db
-  transaction {
-    println("Create missing schemas.")
-    SchemaUtils.createMissingTablesAndColumns (UserMessage)
+  runBlocking {
+    retryIO {
+      transaction {
+        println("Create missing schemas.")
+        SchemaUtils.createMissingTablesAndColumns(UserMessage)
+      }
+    }
   }
 
   val token = System.getenv("BOT_TOKEN")
@@ -64,18 +65,22 @@ fun main(args: Array<String>) {
       for (channel in guild.textChannels) {
 //        println("[${now()}] Start gathering messages from channel ${guild.name}/${channel.name}. " +
 //            "Looking for last saved message...")
-        var lastSavedMessageId = lastSavedMessage(channel.id)?.get(UserMessage.id)
-            ?: channel.getLatestMessageIdSafe()
         GlobalScope.launch {
           retryIO {
-            val newMessages = channel.gatherUserMessages(channel, lastSavedMessageId)
-            if (newMessages.isEmpty()) {
-              println("[${now()}] Channel ${guild.name}/${channel.name} is up to date.")
-              return@retryIO
+            var lastSavedMessageId = lastSavedMessage(channel.id)?.get(UserMessage.id)
+                ?: channel.getLatestMessageIdSafe()
+            var messagesUploaded = 0
+            while (true) {
+              val newMessages = channel.gatherUserMessages(channel, lastSavedMessageId)
+              if (newMessages.isEmpty()) {
+                println("[${now()}] Channel ${guild.name}/${channel.name} is up to date.")
+                break
+              }
+              uploadMessages(newMessages)
+              lastSavedMessageId = newMessages.minBy { it.creationTime }?.id
+              messagesUploaded += newMessages.size
             }
-            uploadMessages(newMessages)
-            lastSavedMessageId = newMessages.minBy { it.creationTime }?.id
-            println("[${now()}] Channel ${guild.name}/${channel.name} has ${newMessages.size} new messages. " +
+            println("[${now()}] Channel ${guild.name}/${channel.name} has $messagesUploaded new messages. " +
                 "Last message id=$lastSavedMessageId")
           }
         }
@@ -94,8 +99,8 @@ fun TextChannel.gatherUserMessages(channel: TextChannel, currentMessageId: Strin
 
 suspend fun retryIO(
     times: Int = Int.MAX_VALUE,
-    initialDelay: Long = 100, // 0.1 second
-    maxDelay: Long = 1000,    // 1 second
+    initialDelay: Long = 1000 * 60,
+    maxDelay: Long = Long.MAX_VALUE,
     factor: Double = 2.0,
     block: suspend () -> Unit) {
   var attempt = 0
@@ -105,7 +110,7 @@ suspend fun retryIO(
       return block()
     } catch (e: ExposedSQLException) {
       attempt++
-      println("Retry attempt number $attempt after ${currentDelay/1000.0} seconds.")
+      println("Retry attempt number $attempt after ${currentDelay / 60000.0} minutes.")
       // you can log an error here and/or make a more finer-grained
       // analysis of the cause to see if retry is needed
     }

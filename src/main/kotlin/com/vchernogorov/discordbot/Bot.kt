@@ -108,11 +108,9 @@ suspend fun retryIO(
   repeat(times - 1) {
     try {
       return block()
-    } catch (e: ExposedSQLException) {
+    } catch (e: Exception) {
       attempt++
-      println("Retry attempt number $attempt after ${currentDelay / 60000.0} minutes.")
-      // you can log an error here and/or make a more finer-grained
-      // analysis of the cause to see if retry is needed
+//      println("Retry attempt number $attempt after ${currentDelay / 60000.0} minutes.")
     }
     delay(currentDelay)
     currentDelay = (currentDelay * factor).toLong().coerceAtMost(maxDelay)

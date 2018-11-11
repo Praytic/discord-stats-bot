@@ -2,6 +2,7 @@ package com.vchernogorov.discordbot
 
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.delay
 import net.dv8tion.jda.core.entities.MessageChannel
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import java.io.File
@@ -31,4 +32,25 @@ fun MessageChannel.getLatestMessageIdSafe(): String? {
   } catch (e: IllegalStateException) {
     null
   }
+}
+
+suspend fun backoffRetry(
+    name: String? = null,
+    times: Int = Int.MAX_VALUE,
+    initialDelay: Long = 1000 * 60,
+    maxDelay: Long = Long.MAX_VALUE,
+    factor: Double = 2.0,
+    block: suspend () -> Unit) {
+  var attempt = 0
+  var currentDelay = initialDelay
+  repeat(times - 1) {
+    try {
+      return block()
+    } catch (e: Exception) {
+      attempt++
+    }
+    delay(currentDelay)
+    currentDelay = (currentDelay * factor).toLong().coerceAtMost(maxDelay)
+  }
+  block()
 }

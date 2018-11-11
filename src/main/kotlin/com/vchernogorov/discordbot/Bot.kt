@@ -4,22 +4,23 @@ import com.google.gson.Gson
 import kotlinx.coroutines.*
 import net.dv8tion.jda.core.AccountType
 import net.dv8tion.jda.core.JDABuilder
+import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.entities.Message
 import net.dv8tion.jda.core.entities.TextChannel
-import org.jetbrains.exposed.exceptions.ExposedSQLException
+import net.dv8tion.jda.core.utils.PermissionUtil
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction
+import ratpack.health.HealthCheckHandler
 import ratpack.server.BaseDir
 import ratpack.server.RatpackServer.start
-import java.io.IOException
 import java.net.URI
 import java.time.Instant.now
-import java.util.concurrent.Executors
-import kotlin.concurrent.fixedRateTimer
 
-val gson = Gson()
-val db: Database by lazy {
+val gson by lazy {
+  Gson()
+}
+val db by lazy {
   val dbUri = URI(System.getenv("CLEARDB_DATABASE_URL"))
   val username = dbUri.getUserInfo().split(":")[0]
   val password = dbUri.getUserInfo().split(":")[1]
@@ -28,92 +29,99 @@ val db: Database by lazy {
   println("Database connection has been established to $dbUrl for user $username.")
   connect
 }
-
-fun main(args: Array<String>) {
+val server by lazy {
   start {
     it.serverConfig {
       it.baseDir(BaseDir.find()).env()
-    }
-  }
+    }.handlers { it.get("health", HealthCheckHandler()) }
 
-  db
-  runBlocking {
-    retryIO {
-      transaction {
-        println("Create missing schemas.")
-        SchemaUtils.createMissingTablesAndColumns(UserMessage)
-      }
-    }
   }
-
-  val token = System.getenv("BOT_TOKEN")
-  val jda = try {
+}
+val jda by lazy {
+  try {
     val jda = JDABuilder(AccountType.BOT)
         .addEventListener(OwnerCommandListener())
-        .setToken(token ?: throw Exception("Token wasn't populated."))
+        .setToken(System.getenv("BOT_TOKEN") ?: throw Exception("Token wasn't populated."))
         .build()
     println("JDA token has been populated successfully.")
     jda
   } catch (e: Exception) {
     e.printStackTrace()
     System.exit(-1)
-    return
+    throw e
   }
+}
 
-  fixedRateTimer(null, false, 1000, 10000) {
-    for (guild in jda.guilds) {
-      for (channel in guild.textChannels) {
-//        println("[${now()}] Start gathering messages from channel ${guild.name}/${channel.name}. " +
-//            "Looking for last saved message...")
-        GlobalScope.launch {
-          retryIO {
-            var lastSavedMessageId = lastSavedMessage(channel.id)?.get(UserMessage.id)
-                ?: channel.getLatestMessageIdSafe()
-            var messagesUploaded = 0
-            while (true) {
-              val newMessages = channel.gatherUserMessages(channel, lastSavedMessageId)
-              if (newMessages.isEmpty()) {
-                println("[${now()}] Channel ${guild.name}/${channel.name} is up to date.")
-                break
-              }
-              uploadMessages(newMessages)
-              lastSavedMessageId = newMessages.minBy { it.creationTime }?.id
-              messagesUploaded += newMessages.size
-            }
-            println("[${now()}] Channel ${guild.name}/${channel.name} has $messagesUploaded new messages. " +
-                "Last message id=$lastSavedMessageId")
-          }
-        }
+fun main(args: Array<String>) {
+  gson
+  server
+  db
+  jda
+
+  createMissingSchemas()
+  GlobalScope.launch {
+    while (true) {
+      startDiscordPoller(this)
+    }
+  }
+}
+
+suspend fun startDiscordPoller(scope: CoroutineScope) {
+  for (guild in jda.guilds) {
+    for (channel in guild.textChannels
+        .filter { PermissionUtil.checkPermission(it, it.guild.selfMember, Permission.MESSAGE_READ) }) {
+      backoffRetry(name = "${guild.name}/${channel.name}", initialDelay = 1000, factor = 1.0) {
+        val oldMessages = uploadOldMessages(channel)
+        val newMessages = uploadNewMessages(channel)
+        println("[${now()}] Uploaded ${oldMessages.await()} old and " +
+            "${newMessages.await()} new messages for channel ${guild.name}/${channel.name}.")
       }
     }
   }
 }
 
-fun TextChannel.gatherUserMessages(channel: TextChannel, currentMessageId: String?): List<Message> {
-  return if (currentMessageId != null) {
-    channel.getHistoryBefore(currentMessageId, 100).complete().retrievedHistory
-  } else {
-    emptyList()
+suspend fun uploadNewMessages(channel: TextChannel) = coroutineScope {
+  var latestSavedMessageId = latestSavedMessage(channel.id)?.get(UserMessage.id)
+      ?: channel.getLatestMessageIdSafe()
+  val latestMessageId = channel.getLatestMessageIdSafe()
+  async {
+    var newMessagesUploaded = 0
+    while (true) {
+      val newMessages = if (latestSavedMessageId != latestMessageId) {
+        channel.getHistoryAfter(latestSavedMessageId, 100).complete().retrievedHistory
+      } else {
+        break
+      }
+      uploadMessages(newMessages)
+      latestSavedMessageId = newMessages.maxBy { it.creationTime }?.id
+      newMessagesUploaded += newMessages.size
+    }
+    newMessagesUploaded
   }
 }
 
-suspend fun retryIO(
-    times: Int = Int.MAX_VALUE,
-    initialDelay: Long = 1000 * 60,
-    maxDelay: Long = Long.MAX_VALUE,
-    factor: Double = 2.0,
-    block: suspend () -> Unit) {
-  var attempt = 0
-  var currentDelay = initialDelay
-  repeat(times - 1) {
-    try {
-      return block()
-    } catch (e: Exception) {
-      attempt++
-//      println("Retry attempt number $attempt after ${currentDelay / 60000.0} minutes.")
+suspend fun uploadOldMessages(channel: TextChannel) = coroutineScope {
+  var firstSavedMessageId = latestSavedMessage(channel.id)?.get(UserMessage.id)
+      ?: channel.getLatestMessageIdSafe()
+  async {
+    var newMessagesUploaded = 0
+    while (true) {
+      val newMessages = channel.getHistoryBefore(firstSavedMessageId, 100).complete().retrievedHistory
+      if (newMessages.isEmpty()) {
+        break
+      }
+      uploadMessages(newMessages)
+      firstSavedMessageId = newMessages.minBy { it.creationTime }?.id
+      newMessagesUploaded += newMessages.size
     }
-    delay(currentDelay)
-    currentDelay = (currentDelay * factor).toLong().coerceAtMost(maxDelay)
+    newMessagesUploaded
   }
-  block() // last attempt
+}
+
+
+fun createMissingSchemas() {
+  transaction {
+    println("Create missing schemas.")
+    SchemaUtils.createMissingTablesAndColumns(UserMessage)
+  }
 }

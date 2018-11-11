@@ -16,10 +16,29 @@ fun uploadMessages(elements: Collection<Message>) = transaction {
   }
 }
 
-fun lastSavedMessage(channelId: String) = transaction {
+/**
+ * Returns the earliest message saved to the database for the channel with [channelId].
+ */
+fun firstSavedMessage(channelId: String) = transaction {
   UserMessage.select {
     UserMessage.channelId.eq(channelId)
   }.minBy {
+    try {
+      OffsetDateTime.parse(it[UserMessage.creationDate])
+    } catch (e: ClassCastException) {
+      e.printStackTrace()
+      OffsetDateTime.parse(it[UserMessage.creationDate])
+    }
+  }
+}
+
+/**
+ * Returns the latest message saved to the database for the channel with [channelId].
+ */
+fun latestSavedMessage(channelId: String) = transaction {
+  UserMessage.select {
+    UserMessage.channelId.eq(channelId)
+  }.maxBy {
     try {
       OffsetDateTime.parse(it[UserMessage.creationDate])
     } catch (e: ClassCastException) {

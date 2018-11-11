@@ -27,6 +27,7 @@ val db by lazy {
   val dbUrl = "jdbc:mysql://" + dbUri.getHost() + dbUri.getPath()
   val connect = Database.connect(url = dbUrl, driver = "com.mysql.jdbc.Driver", user = username, password = password)
   println("Database connection has been established to $dbUrl for user $username.")
+  createMissingSchemas()
   connect
 }
 val server by lazy {
@@ -38,31 +39,29 @@ val server by lazy {
   }
 }
 val jda by lazy {
-  try {
-    val jda = JDABuilder(AccountType.BOT)
-        .addEventListener(OwnerCommandListener())
-        .setToken(System.getenv("BOT_TOKEN") ?: throw Exception("Token wasn't populated."))
-        .build()
-    println("JDA token has been populated successfully.")
-    jda
-  } catch (e: Exception) {
-    e.printStackTrace()
-    System.exit(-1)
-    throw e
-  }
-}
-
-fun main(args: Array<String>) {
-  gson
-  server
-  db
-  jda
-
-  createMissingSchemas()
+  val jda = JDABuilder(AccountType.BOT)
+      .addEventListener(OwnerCommandListener())
+      .setToken(System.getenv("BOT_TOKEN") ?: throw Exception("Token wasn't populated."))
+      .build()
+  println("JDA token has been populated successfully.")
   GlobalScope.launch {
     while (true) {
       startDiscordPoller(this)
     }
+  }
+  jda
+}
+
+fun main(args: Array<String>) {
+  try {
+    gson
+    server
+    db
+    jda
+  } catch (e: Exception) {
+    e.printStackTrace()
+    server.stop()
+    System.exit(-1)
   }
 }
 

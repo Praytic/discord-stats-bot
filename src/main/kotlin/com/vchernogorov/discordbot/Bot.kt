@@ -46,7 +46,7 @@ val jda by lazy {
   println("JDA token has been populated successfully.")
   GlobalScope.launch {
     while (true) {
-      startDiscordPoller(this)
+      startDiscordPoller()
     }
   }
   jda
@@ -58,22 +58,25 @@ fun main(args: Array<String>) {
     server
     db
     jda
-  } catch (e: Exception) {
+  } catch (e: Throwable) {
     e.printStackTrace()
+    println("Stoping ratpack...")
     server.stop()
     System.exit(-1)
   }
 }
 
-suspend fun startDiscordPoller(scope: CoroutineScope) {
+suspend fun startDiscordPoller() {
   for (guild in jda.guilds) {
     for (channel in guild.textChannels
         .filter { PermissionUtil.checkPermission(it, it.guild.selfMember, Permission.MESSAGE_READ) }) {
-      backoffRetry(name = "${guild.name}/${channel.name}", initialDelay = 1000, factor = 1.0) {
+      backoffRetry(name = "${guild.name}/${channel.name}", initialDelay = 1000, factor = 2.0) {
         val oldMessages = uploadOldMessages(channel)
         val newMessages = uploadNewMessages(channel)
-        println("[${now()}] Uploaded ${oldMessages.await()} old and " +
-            "${newMessages.await()} new messages for channel ${guild.name}/${channel.name}.")
+        val uploadedMessages = oldMessages.await() + newMessages.await()
+        if (uploadedMessages > 0) {
+          println("[${now()}] Uploaded ${uploadedMessages} messages for channel ${guild.name}/${channel.name}.")
+        }
       }
     }
   }
@@ -86,7 +89,7 @@ suspend fun uploadNewMessages(channel: TextChannel) = coroutineScope {
   async {
     var newMessagesUploaded = 0
     while (true) {
-      val newMessages = if (latestSavedMessageId != latestMessageId) {
+      val newMessages = if (latestSavedMessageId != null && latestSavedMessageId != latestMessageId) {
         channel.getHistoryAfter(latestSavedMessageId, 100).complete().retrievedHistory
       } else {
         break

@@ -103,7 +103,7 @@ suspend fun uploadNewMessages(channel: TextChannel) = coroutineScope {
 }
 
 suspend fun uploadOldMessages(channel: TextChannel) = coroutineScope {
-  var firstSavedMessageId = latestSavedMessage(channel.id)?.get(UserMessage.id)
+  var firstSavedMessageId = firstSavedMessage(channel.id)?.get(UserMessage.id)
       ?: channel.getLatestMessageIdSafe()
   async {
     var newMessagesUploaded = 0

@@ -21,9 +21,11 @@ val lastMessageByChannel by lazy {
   logger.info("Initializing 'last messages IDs by channel' map.")
   val map = mutableMapOf<TextChannel, String?>()
   for (guild in jda.guilds) {
-    val messageIds = latestSavedMessages(guild.textChannels.map { it.id })
+    // Not working because of GC overhead error
+//    val messageIds = latestSavedMessages(guild.textChannels.map { it.id })
     for (channel in guild.textChannels) {
-      map[channel] = messageIds[channel.id]?.get(UserMessage.id)
+      val messageIds = latestSavedMessages(listOf(channel.id))
+      map[channel] = messageIds[channel.id]
     }
   }
   map
@@ -33,9 +35,11 @@ val firstMessageByChannel by lazy {
   logger.info("Initializing 'first messages IDs by channel' map.")
   val map = mutableMapOf<TextChannel, String?>()
   for (guild in jda.guilds) {
-    val messageIds = firstSavedMessages(guild.textChannels.map { it.id })
+    // Not working because of GC overhead error
+//    val messageIds = firstSavedMessages(guild.textChannels.map { it.id })
     for (channel in guild.textChannels) {
-      map[channel] = messageIds[channel.id]?.get(UserMessage.id)
+      val messageIds = firstSavedMessages(listOf(channel.id))
+      map[channel] = messageIds[channel.id]
     }
   }
   map

@@ -17,31 +17,31 @@ fun uploadMessages(elements: Collection<Message>) = transaction {
 }
 
 /**
- * Returns the earliest message saved to the database for all channels with [channelIds].
+ * Returns the earliest messageId saved to the database for all channels with [channelIds].
  */
 fun firstSavedMessages(channelIds: List<String>) = transaction {
-  UserMessage.select {
-    UserMessage.channelId.inList(channelIds)
-  }.groupBy {
-    it[UserMessage.channelId]
-  }.map {
-    it.key to it.value.minBy {
-      OffsetDateTime.parse(it[UserMessage.creationDate])
-    }
-  }.toMap()
-}
-
-/**
- * Returns the latest message saved to the database for all channels with [channelIds].
- */
-fun latestSavedMessages(channelIds: List<String>) = transaction {
-  UserMessage.select {
+  UserMessage.slice(UserMessage.channelId, UserMessage.creationDate).select {
     UserMessage.channelId.inList(channelIds)
   }.groupBy {
     it[UserMessage.channelId]
   }.map {
     it.key to it.value.maxBy {
       OffsetDateTime.parse(it[UserMessage.creationDate])
-    }
+    }?.get(UserMessage.channelId)
+  }.toMap()
+}
+
+/**
+ * Returns the latest messageId saved to the database for all channels with [channelIds].
+ */
+fun latestSavedMessages(channelIds: List<String>) = transaction {
+  UserMessage.slice(UserMessage.channelId, UserMessage.creationDate).select {
+    UserMessage.channelId.inList(channelIds)
+  }.groupBy {
+    it[UserMessage.channelId]
+  }.map {
+    it.key to it.value.maxBy {
+      OffsetDateTime.parse(it[UserMessage.creationDate])
+    }?.get(UserMessage.channelId)
   }.toMap()
 }

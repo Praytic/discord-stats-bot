@@ -17,33 +17,31 @@ fun uploadMessages(elements: Collection<Message>) = transaction {
 }
 
 /**
- * Returns the earliest message saved to the database for the channel with [channelId].
+ * Returns the earliest message saved to the database for all channels with [channelIds].
  */
-fun firstSavedMessage(channelId: String) = transaction {
+fun firstSavedMessages(channelIds: List<String>) = transaction {
   UserMessage.select {
-    UserMessage.channelId.eq(channelId)
-  }.minBy {
-    try {
-      OffsetDateTime.parse(it[UserMessage.creationDate])
-    } catch (e: ClassCastException) {
-      e.printStackTrace()
+    UserMessage.channelId.inList(channelIds)
+  }.groupBy {
+    it[UserMessage.channelId]
+  }.map {
+    it.key to it.value.minBy {
       OffsetDateTime.parse(it[UserMessage.creationDate])
     }
-  }
+  }.toMap()
 }
 
 /**
- * Returns the latest message saved to the database for the channel with [channelId].
+ * Returns the latest message saved to the database for all channels with [channelIds].
  */
-fun latestSavedMessage(channelId: String) = transaction {
+fun latestSavedMessages(channelIds: List<String>) = transaction {
   UserMessage.select {
-    UserMessage.channelId.eq(channelId)
-  }.maxBy {
-    try {
-      OffsetDateTime.parse(it[UserMessage.creationDate])
-    } catch (e: ClassCastException) {
-      e.printStackTrace()
+    UserMessage.channelId.inList(channelIds)
+  }.groupBy {
+    it[UserMessage.channelId]
+  }.map {
+    it.key to it.value.maxBy {
       OffsetDateTime.parse(it[UserMessage.creationDate])
     }
-  }
+  }.toMap()
 }

@@ -49,7 +49,7 @@ suspend fun backoffRetry(
     } catch (e: Exception) {
       attempt++
       e.printStackTrace()
-      println("Retrying job [$name] after ${currentDelay/1000} seconds.")
+      logger.info("Retrying job [$name] after ${currentDelay/1000} seconds.")
     }
     delay(currentDelay)
     currentDelay = (currentDelay * factor).toLong().coerceAtMost(maxDelay)

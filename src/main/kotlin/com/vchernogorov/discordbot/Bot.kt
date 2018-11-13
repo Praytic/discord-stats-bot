@@ -2,21 +2,22 @@ package com.vchernogorov.discordbot
 
 import com.google.gson.Gson
 import kotlinx.coroutines.*
+import mu.KotlinLogging
 import net.dv8tion.jda.core.AccountType
 import net.dv8tion.jda.core.JDABuilder
 import net.dv8tion.jda.core.Permission
-import net.dv8tion.jda.core.entities.Message
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.utils.PermissionUtil
 import org.jetbrains.exposed.sql.Database
-import org.jetbrains.exposed.sql.SchemaUtils
-import org.jetbrains.exposed.sql.transactions.transaction
 import ratpack.health.HealthCheckHandler
 import ratpack.server.BaseDir
 import ratpack.server.RatpackServer.start
 import java.net.URI
 import java.time.Instant.now
 
+val logger by lazy {
+  KotlinLogging.logger { }
+}
 val gson by lazy {
   Gson()
 }
@@ -26,8 +27,8 @@ val db by lazy {
   val password = dbUri.getUserInfo().split(":")[1]
   val dbUrl = "jdbc:mysql://" + dbUri.getHost() + dbUri.getPath()
   val connect = Database.connect(url = dbUrl, driver = "com.mysql.jdbc.Driver", user = username, password = password)
-  println("Database connection has been established to $dbUrl for user $username.")
-  createMissingSchemas()
+  logger.info("Database connection has been established to $dbUrl for user $username.")
+//  createMissingSchemas()
   connect
 }
 val server by lazy {
@@ -43,10 +44,11 @@ val jda by lazy {
       .addEventListener(OwnerCommandListener())
       .setToken(System.getenv("BOT_TOKEN") ?: throw Exception("Token wasn't populated."))
       .build()
-  println("JDA token has been populated successfully.")
+  logger.info("JDA token has been populated successfully.")
   GlobalScope.launch {
     while (true) {
       startDiscordPoller()
+      delay(60000)
     }
   }
   jda
@@ -60,7 +62,6 @@ fun main(args: Array<String>) {
     jda
   } catch (e: Throwable) {
     e.printStackTrace()
-    println("Stoping ratpack...")
     server.stop()
     System.exit(-1)
   }
@@ -75,7 +76,7 @@ suspend fun startDiscordPoller() {
         val newMessages = uploadNewMessages(channel)
         val uploadedMessages = oldMessages.await() + newMessages.await()
         if (uploadedMessages > 0) {
-          println("[${now()}] Uploaded ${uploadedMessages} messages for channel ${guild.name}/${channel.name}.")
+          logger.info("[${now()}] Uploaded ${uploadedMessages} messages for channel ${guild.name}/${channel.name}.")
         }
       }
     }
@@ -121,9 +122,3 @@ suspend fun uploadOldMessages(channel: TextChannel) = coroutineScope {
 }
 
 
-fun createMissingSchemas() {
-  transaction {
-    println("Create missing schemas.")
-    SchemaUtils.createMissingTablesAndColumns(UserMessage)
-  }
-}

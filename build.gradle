@@ -49,6 +49,7 @@ dependencies {
     compile 'org.jetbrains.exposed:exposed:0.11.2'
     compile 'mysql:mysql-connector-java:5.1.6'
     compile group: 'org.apache.logging.log4j', name: 'log4j-slf4j-impl', version: '2.11.1'
+    compile 'io.github.microutils:kotlin-logging:1.6.20'
     testCompile "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
 }
 

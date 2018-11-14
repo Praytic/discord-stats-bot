@@ -29,8 +29,8 @@ fun execute(event: MessageReceivedEvent, vararg params: String) = with(event.gui
           File("stats/${channel.id}/${member.user.id}.json")
               .bufferedReader()
               .use { _in ->
-                val userStat = gson.fromJson<UserStat>(_in.readText())
-                userStats += userStat
+//                val userStat = gson.fromJson<UserStat>(_in.readText())
+//                userStats += userStat
               }
 //           val aggregatedUserStat = UserStat(
 //             userStats.first().user,

@@ -2,7 +2,7 @@ package com.vchernogorov.discordbot.task
 
 abstract class MessagesStatsTask : MessageTask() {
 
-  val statsFolderName = "stats"
+    val statsFolderName = "stats"
 //
 //  protected fun totalMessages(messages: Collection<UserMessage>) = messages.count()
 //

@@ -4,8 +4,8 @@ import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 
 class ChannelStatsTask : MessagesStatsTask() {
 
-  override fun execute(event: MessageReceivedEvent, vararg params: String) = with(event.guild) {
-//    textChannels.forEach { channel ->
+    override fun execute(event: MessageReceivedEvent, vararg params: String) = with(event.guild) {
+        //    textChannels.forEach { channel ->
 //      try {
 //        File("$messagesFolderName/${channel.id}.json").bufferedReader().use { it ->
 //          val messages = gson.fromJson<List<UserMessage>>(it.readText())
@@ -20,5 +20,5 @@ class ChannelStatsTask : MessagesStatsTask() {
 //        e.printStackTrace()
 //      }
 //    }
-  }
+    }
 }

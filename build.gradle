@@ -23,6 +23,10 @@ repositories {
     jcenter()
 }
 
+configurations {
+    ktlint
+}
+
 apply plugin: 'java'
 apply plugin: 'kotlin'
 
@@ -52,6 +56,7 @@ dependencies {
     compile 'io.github.microutils:kotlin-logging:1.6.20'
     compile 'com.xenomachina:kotlin-argparser:2.0.7'
     testCompile "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
+    ktlint "com.github.shyiko:ktlint:0.15.0"
 }
 
 task wrapper(type: Wrapper) {
@@ -59,5 +64,13 @@ task wrapper(type: Wrapper) {
 }
 
 task stage {
+    dependsOn ktlint
     dependsOn installDist
+}
+
+task ktlint(type: JavaExec, group: "verification") {
+    description = "Check Kotlin code style."
+    classpath = configurations.ktlint
+    main = "com.github.shyiko.ktlint.Main"
+    args "src/**/*.kt"
 }

@@ -4,7 +4,7 @@ import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 
 abstract class MessageTask {
 
-  val messagesFolderName = "messages"
+    val messagesFolderName = "messages"
 
-  abstract fun execute(event: MessageReceivedEvent, vararg params: String)
+    abstract fun execute(event: MessageReceivedEvent, vararg params: String)
 }

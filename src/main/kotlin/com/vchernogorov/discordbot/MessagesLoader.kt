@@ -6,8 +6,8 @@ import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.OffsetDateTime
 
-fun uploadMessages(elements: Collection<Message>) = transaction {
-    UserMessage.batchInsert(elements, ignore = true) {
+fun uploadMessages(elements: Collection<Message>, ignoreExistingRecords: Boolean = true) = transaction {
+    UserMessage.batchInsert(elements, ignore = ignoreExistingRecords) {
         this[UserMessage.id] = it.id
         this[UserMessage.channelId] = it.channel.id
         this[UserMessage.creationDate] = it.creationTime.toString()
@@ -20,14 +20,14 @@ fun uploadMessages(elements: Collection<Message>) = transaction {
  * Returns the earliest messageId saved to the database for all channels with [channelIds].
  */
 fun firstSavedMessages(channelIds: List<String>) = transaction {
-    UserMessage.slice(UserMessage.channelId, UserMessage.creationDate).select {
+    UserMessage.slice(UserMessage.id, UserMessage.channelId, UserMessage.creationDate).select {
         UserMessage.channelId.inList(channelIds)
     }.groupBy {
         it[UserMessage.channelId]
     }.map {
-        it.key to it.value.maxBy {
+        it.key to it.value.minBy {
             OffsetDateTime.parse(it[UserMessage.creationDate])
-        }?.get(UserMessage.channelId)
+        }?.get(UserMessage.id)
     }.toMap()
 }
 
@@ -35,13 +35,13 @@ fun firstSavedMessages(channelIds: List<String>) = transaction {
  * Returns the latest messageId saved to the database for all channels with [channelIds].
  */
 fun latestSavedMessages(channelIds: List<String>) = transaction {
-    UserMessage.slice(UserMessage.channelId, UserMessage.creationDate).select {
+    UserMessage.slice(UserMessage.id, UserMessage.channelId, UserMessage.creationDate).select {
         UserMessage.channelId.inList(channelIds)
     }.groupBy {
         it[UserMessage.channelId]
     }.map {
         it.key to it.value.maxBy {
             OffsetDateTime.parse(it[UserMessage.creationDate])
-        }?.get(UserMessage.channelId)
+        }?.get(UserMessage.id)
     }.toMap()
 }

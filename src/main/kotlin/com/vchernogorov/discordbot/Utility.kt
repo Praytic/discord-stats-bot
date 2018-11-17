@@ -3,8 +3,11 @@ package com.vchernogorov.discordbot
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.delay
+import mu.KotlinLogging
 import net.dv8tion.jda.core.entities.MessageChannel
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
+
+private val logger = KotlinLogging.logger("Utility")
 
 inline fun <reified T> Gson.fromJson(json: String) =
         this.fromJson<T>(json, object : TypeToken<T>() {}.type)
@@ -34,8 +37,7 @@ suspend fun backoffRetry(
             return block()
         } catch (e: Exception) {
             attempt++
-            e.printStackTrace()
-//      logger.info("Retrying job [$name] after ${currentDelay/1000} seconds.")
+            logger.error(e) {"Retrying job [$name] after ${currentDelay/1000} seconds." }
         }
         delay(currentDelay)
         currentDelay = (currentDelay * factor).toLong().coerceAtMost(maxDelay)

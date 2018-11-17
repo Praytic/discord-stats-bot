@@ -63,8 +63,8 @@ class BotInitializerListener(val fetchDelayMillis: Long,
                         }
 
                         backoffRetry(name = "${guild.name}/${channel.name}", initialDelay = backoffRetryDelay, factor = backoffRetryFactor) {
-                            val oldMessages = uploadOldMessages(channel, lastMessageByChannel)
-                            val newMessages = uploadNewMessages(channel, firstMessageByChannel)
+                            val oldMessages = uploadOldMessages(channel, firstMessageByChannel)
+                            val newMessages = uploadNewMessages(channel, lastMessageByChannel)
                             val uploadedMessages = oldMessages.await() + newMessages.await()
                             if (uploadedMessages > 0) {
                                 logger.info("[${Instant.now()}] Uploaded $uploadedMessages messages for channel ${guild.name}/${channel.name}.")
@@ -94,6 +94,8 @@ class BotInitializerListener(val fetchDelayMillis: Long,
                     uploadMessages(newMessages)
                     latestSavedMessageId = newMessages.maxBy { it.creationTime }?.id
                     newMessagesUploaded += newMessages.size
+                } else {
+                    break
                 }
             }
             messagesByChannel[channel] = latestSavedMessageId
@@ -116,7 +118,7 @@ class BotInitializerListener(val fetchDelayMillis: Long,
                     break
                 }
                 if (newMessages.isNotEmpty()) {
-                    uploadMessages(newMessages)
+                    uploadMessages(newMessages, false)
                     firstSavedMessageId = newMessages.minBy { it.creationTime }?.id
                     newMessagesUploaded += newMessages.size
                 }

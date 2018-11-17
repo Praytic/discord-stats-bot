@@ -23,8 +23,8 @@ class MyArgs(parser: ArgParser) {
             help = "sets the multiplier factor of backoff retry mechanism on failed database request"
     ) { toDouble() }.default(1.0)
 
-    val bulkMessageIdsSelection by parser.flagging(
-            "--bulkMessageIdsSelection",
-            help = "if active, bot initializer will query all messages at once instead of querying by channels"
+    val hugeTransactions by parser.flagging(
+            "--hugeTransactions",
+            help = "if active, huge transactions can be made"
     )
 }

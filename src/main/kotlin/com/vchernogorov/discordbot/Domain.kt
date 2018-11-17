@@ -29,6 +29,7 @@ enum class Mode {
     CHANNEL_STATS,
     USER_STATS,
     PRINT_STATS,
+    EMOTE_STATS,
     UNDEFINED
 }
 

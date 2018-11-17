@@ -1,6 +1,7 @@
 package com.vchernogorov.discordbot
 
 import com.vchernogorov.discordbot.task.ChannelStatsTask
+import com.vchernogorov.discordbot.task.UserEmoteStatsTask
 import com.vchernogorov.discordbot.task.UserStatsTask
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import net.dv8tion.jda.core.hooks.ListenerAdapter
@@ -9,7 +10,8 @@ class OwnerCommandListener : ListenerAdapter() {
 
     val tasks = mapOf(
             Mode.CHANNEL_STATS to ChannelStatsTask(),
-            Mode.USER_STATS to UserStatsTask()
+            Mode.USER_STATS to UserStatsTask(),
+            Mode.EMOTE_STATS to UserEmoteStatsTask()
     )
     val ownerId = 278592046124761088L
 

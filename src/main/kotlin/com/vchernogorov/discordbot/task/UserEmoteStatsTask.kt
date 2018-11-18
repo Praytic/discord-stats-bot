@@ -8,7 +8,6 @@ import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
-import java.util.regex.Pattern
 
 class UserEmoteStatsTask : MessagesStatsTask() {
 
@@ -19,16 +18,20 @@ class UserEmoteStatsTask : MessagesStatsTask() {
             messageExcFilter: List<String>,
             messageIncFilter: List<String>) {
         val emotesByMember = transaction {
-            UserMessage.slice(UserMessage.content, UserMessage.creatorId).select {
+            val emoteRegex = "<:(.*?):[0-9]{18}>".toRegex()
+            val result = UserMessage.slice(UserMessage.content, UserMessage.creatorId).select {
                 (if (users.isNotEmpty()) UserMessage.creatorId.inList(users.map { it.user.id }) else UserMessage.creatorId.isNotNull()) and
                         (if (channels.isNotEmpty()) UserMessage.channelId.inList(channels.map { it.id }) else UserMessage.channelId.isNotNull())
-            }.filter {
-                Pattern.matches("<:*:[0-9]{18}>", it[UserMessage.content])
-            }.map {
-                val rawEmote = it[UserMessage.content].dropLast(1).takeLast(18)
-                val member = event.jda.getUserById(it[UserMessage.creatorId])
-                member to event.jda.getEmoteById(rawEmote)
             }
+            val emotesByMember = result.map {
+                it[UserMessage.creatorId] to emoteRegex.findAll(it[UserMessage.content], 0).toList()
+            }.filterNot { (_, emotes) -> emotes.isEmpty() }
+                    .map { (creatorId, emotes) ->
+                val emoteIds = emotes.map { it.value.dropLast(1).takeLast(18) }
+                val member = event.jda.getUserById(creatorId)
+                member to emoteIds.map { event.jda.getEmoteById(it) }
+            }
+            emotesByMember
         }
                 .groupBy({ it.first }, { it.second })
                 .map { it.key to it.value.count() }
@@ -39,7 +42,7 @@ class UserEmoteStatsTask : MessagesStatsTask() {
         emotesByMember.forEachIndexed { i, it ->
             val user = it.first
             val emotesTotal = it.second
-            message += "$i. ${user.name}: $emotesTotal\n"
+            message += "${i+1}. ${user.name}: $emotesTotal\n"
         }
         message += "```"
         event.send(message)

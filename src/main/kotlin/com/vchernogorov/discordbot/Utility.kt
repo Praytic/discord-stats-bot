@@ -13,7 +13,7 @@ inline fun <reified T> Gson.fromJson(json: String) =
         this.fromJson<T>(json, object : TypeToken<T>() {}.type)
 
 fun MessageReceivedEvent.send(message: String) =
-        textChannel.sendMessage(net.dv8tion.jda.core.MessageBuilder().append(message).build())
+        textChannel.sendMessage(net.dv8tion.jda.core.MessageBuilder().append(message).build()).complete()
 
 fun MessageChannel.getLatestMessageIdSafe(): String? {
     return try {

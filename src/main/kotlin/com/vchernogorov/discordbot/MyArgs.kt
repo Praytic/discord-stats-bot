@@ -2,6 +2,8 @@ package com.vchernogorov.discordbot
 
 import com.xenomachina.argparser.ArgParser
 import com.xenomachina.argparser.default
+import mu.KLogger
+import org.slf4j.Logger
 
 class MyArgs(parser: ArgParser) {
     val fetchDelay by parser.storing(
@@ -26,5 +28,13 @@ class MyArgs(parser: ArgParser) {
     val hugeTransactions by parser.flagging(
             "--hugeTransactions",
             help = "if active, huge transactions can be made"
-    )
+    ).default(false)
+
+    fun printArgs(logger: Logger) {
+        logger.info("Fetch delay is set to ${fetchDelay / 1000.0} seconds.")
+        logger.info("Create schemas on startup is ${if (createSchemas) "enabled" else "disabled"}.")
+        logger.info("Backoff retry delay is set to ${backoffRetryDelay / 60000.0} minutes.")
+        logger.info("Backoff retry factor is set to $backoffRetryFactor.")
+        logger.info("Huge transactions are ${if (hugeTransactions) "enabled" else "disabled"}.")
+    }
 }

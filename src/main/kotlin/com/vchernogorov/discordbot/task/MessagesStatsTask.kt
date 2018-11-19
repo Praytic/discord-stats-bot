@@ -1,5 +1,6 @@
 package com.vchernogorov.discordbot.task
 
+import mu.KotlinLogging
 import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.entities.Member
 import net.dv8tion.jda.core.entities.TextChannel
@@ -7,6 +8,7 @@ import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import net.dv8tion.jda.core.utils.PermissionUtil
 
 abstract class MessagesStatsTask : MessageTask {
+    private val logger = KotlinLogging.logger {}
 
     abstract fun execute(
             event: MessageReceivedEvent,
@@ -18,6 +20,8 @@ abstract class MessagesStatsTask : MessageTask {
     override fun execute(event: MessageReceivedEvent, vararg params: String) = with(event.guild) {
         if (PermissionUtil.checkPermission(event.textChannel, event.guild.selfMember, Permission.MESSAGE_MANAGE)) {
             event.channel.deleteMessageById(event.messageId).queue()
+        } else {
+            logger.warn { "Bot doesn't have ${Permission.MESSAGE_MANAGE} permission. Request message won't be deleted." }
         }
         val textChannels = if (params.isEmpty()) textChannels else params
                 .map { name -> getTextChannelsByName(name, true) }

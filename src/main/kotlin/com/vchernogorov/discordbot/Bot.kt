@@ -18,6 +18,7 @@ import java.net.URI
 fun main(args: Array<String>) = ArgParser(args).parseInto(::MyArgs).run {
     val gson = Gson()
     val logger = KotlinLogging.logger { }
+    printArgs(logger)
     val server = start {
         it.serverConfig {
             it.baseDir(BaseDir.find()).env()

@@ -30,11 +30,17 @@ class MyArgs(parser: ArgParser) {
             help = "if active, huge transactions can be made"
     ).default(false)
 
+    val printErrorsToDiscord by parser.flagging(
+            "--printErrorsToDiscord",
+            help = "if active, all exceptions will be printed to logs AND discord channel where it occurred"
+    )
+
     fun printArgs(logger: Logger) {
         logger.info("Fetch delay is set to ${fetchDelay / 1000.0} seconds.")
         logger.info("Create schemas on startup is ${if (createSchemas) "enabled" else "disabled"}.")
         logger.info("Backoff retry delay is set to ${backoffRetryDelay / 60000.0} minutes.")
         logger.info("Backoff retry factor is set to $backoffRetryFactor.")
         logger.info("Huge transactions are ${if (hugeTransactions) "enabled" else "disabled"}.")
+        logger.info("Print errors to discord is ${if (hugeTransactions) "enabled" else "disabled"}.")
     }
 }

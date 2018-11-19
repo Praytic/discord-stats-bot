@@ -9,25 +9,25 @@ class UserStatsArgs(parser: ArgParser, channel: TextChannel) {
     val limitSecondaryResults by parser.storing(
             "--limitSecondaryResults",
             help = "how much secondary results should be included in top stats. " +
-                    "Example: --limitSecondaryResults 3"
+                    "Example: --limitSecondaryResults=3"
     ) { toInt() }.default(3)
 
     val limitPrimaryResults by parser.storing(
             "--limitPrimaryResults",
             help = "how much primary results should be included in top stats. " +
-                    "Example: --limitPrimaryResults 10"
+                    "Example: --limitPrimaryResults=10"
     ) { toInt() }.default(10)
 
     val limitUsersByMessages by parser.storing(
             "--limitUsersByMessages",
             help = "indicates how much messages user has to have in order to be included in stats. " +
-                    "Example: --limitUsersByMessages 1000"
+                    "Example: --limitUsersByMessages=1000"
     ) { toLong() }.default(1000)
 
     val members by parser.storing(
             "--members",
             help = "what users should be included in stats. " +
-                    "Example: --members user1,user2"
+                    "Example: --members=user1,user2"
     ) {
         this.split(",").map {
             listOf<Member>()
@@ -41,7 +41,7 @@ class UserStatsArgs(parser: ArgParser, channel: TextChannel) {
     val channels by parser.storing(
             "--channels",
             help = "what channels should be included in stats. " +
-                    "Example: --channels channel1,channel2"
+                    "Example: --channels=channel1,channel2"
     ) {
         this.split(",").map {
             channel.guild.getTextChannelsByName(it, true)

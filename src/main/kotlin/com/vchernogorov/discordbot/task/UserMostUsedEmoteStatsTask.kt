@@ -1,6 +1,7 @@
 package com.vchernogorov.discordbot.task
 
 import com.vchernogorov.discordbot.UserMessage
+import com.vchernogorov.discordbot.UserStatsArgs
 import com.vchernogorov.discordbot.send
 import net.dv8tion.jda.core.MessageBuilder
 import net.dv8tion.jda.core.entities.Member
@@ -11,14 +12,9 @@ import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
 import kotlin.math.roundToInt
 
-class UserMostUsedEmoteStatsTask : UserMessagesStatsTask() {
+class UserMostUsedEmoteStatsTask {
 
-    override fun execute(
-            event: MessageReceivedEvent,
-            member: Member,
-            channels: List<TextChannel>,
-            messageExcFilter: List<String>,
-            messageIncFilter: List<String>) {
+    fun execute(event: MessageReceivedEvent, member: Member, limitSecondaryResults: Int, channels: List<TextChannel>) {
         val emotesUsed = transaction {
             val emoteRegex = "<:(.*?):[0-9]{18}>".toRegex()
             val result = UserMessage.slice(UserMessage.content, UserMessage.creatorId).select {
@@ -40,12 +36,12 @@ class UserMostUsedEmoteStatsTask : UserMessagesStatsTask() {
                 .toList()
         val topEmotesUsed = emotesUsed
                 .sortedByDescending { it.second }
-                .take(3)
+                .take(limitSecondaryResults)
 
-        val messageBuilder = MessageBuilder().append("Top emotes for ${member.user.name}: ")
+        val messageBuilder = MessageBuilder().append("Top emotes for **${member.user.name}**: ")
         val totalEmotesUsed = emotesUsed.sumBy { it.second }
         topEmotesUsed.forEachIndexed { i, (emote, count) ->
-            messageBuilder.append(emote).append(" (${(count * 1.0 / totalEmotesUsed * 100).roundToInt()}%) ")
+            messageBuilder.append(emote).append(" `${(count * 1.0 / totalEmotesUsed * 100).roundToInt()}% | $count` ")
         }
         event.send(messageBuilder)
     }

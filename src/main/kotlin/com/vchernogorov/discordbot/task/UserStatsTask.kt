@@ -1,6 +1,7 @@
 package com.vchernogorov.discordbot.task
 
 import com.vchernogorov.discordbot.UserMessage
+import com.vchernogorov.discordbot.UserStatsArgs
 import net.dv8tion.jda.core.entities.Member
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
@@ -9,7 +10,7 @@ import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
 
 class UserStatsTask : MessagesStatsTask() {
-    override fun execute(event: MessageReceivedEvent, members: List<Member>, channels: List<TextChannel>, messageExcFilter: List<String>, messageIncFilter: List<String>) {
+    override fun execute(event: MessageReceivedEvent, args: UserStatsArgs) {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 

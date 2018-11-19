@@ -1,9 +1,8 @@
 package com.vchernogorov.discordbot.task
 
 import com.vchernogorov.discordbot.UserMessage
+import com.vchernogorov.discordbot.UserStatsArgs
 import com.vchernogorov.discordbot.send
-import net.dv8tion.jda.core.entities.Member
-import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.select
@@ -11,17 +10,12 @@ import org.jetbrains.exposed.sql.transactions.transaction
 
 class UserEmoteStatsTask : MessagesStatsTask() {
 
-    override fun execute(
-            event: MessageReceivedEvent,
-            members: List<Member>,
-            channels: List<TextChannel>,
-            messageExcFilter: List<String>,
-            messageIncFilter: List<String>) {
+    override fun execute(event: MessageReceivedEvent, args: UserStatsArgs) {
         val emotesByMember = transaction {
             val emoteRegex = "<:(.*?):[0-9]{18}>".toRegex()
             val result = UserMessage.slice(UserMessage.content, UserMessage.creatorId).select {
-                (if (members.isNotEmpty()) UserMessage.creatorId.inList(members.map { it.user.id }) else UserMessage.creatorId.isNotNull()) and
-                        (if (channels.isNotEmpty()) UserMessage.channelId.inList(channels.map { it.id }) else UserMessage.channelId.isNotNull())
+                (if (args.members.isNotEmpty()) UserMessage.creatorId.inList(args.members.map { it.user.id }) else UserMessage.creatorId.isNotNull()) and
+                        (if (args.channels.isNotEmpty()) UserMessage.channelId.inList(args.channels.map { it.id }) else UserMessage.channelId.isNotNull())
             }
             val emotesByMember = result.map {
                 it[UserMessage.creatorId] to emoteRegex.findAll(it[UserMessage.content], 0).toList()
@@ -36,7 +30,7 @@ class UserEmoteStatsTask : MessagesStatsTask() {
                 .groupBy({ it.first }, { it.second })
                 .map { it.key to it.value.count() }
                 .sortedByDescending { it.second }
-                .take(10)
+                .take(args.limitSecondaryResults)
 
         var message = "```css\n" + "[Top emoters]\n"
         emotesByMember.forEachIndexed { i, it ->

@@ -33,7 +33,7 @@ class MyArgs(parser: ArgParser) {
     val printErrorsToDiscord by parser.flagging(
             "--printErrorsToDiscord",
             help = "if active, all exceptions will be printed to logs AND discord channel where it occurred"
-    )
+    ).default(false)
 
     fun printArgs(logger: Logger) {
         logger.info("Fetch delay is set to ${fetchDelay / 1000.0} seconds.")
@@ -41,6 +41,6 @@ class MyArgs(parser: ArgParser) {
         logger.info("Backoff retry delay is set to ${backoffRetryDelay / 60000.0} minutes.")
         logger.info("Backoff retry factor is set to $backoffRetryFactor.")
         logger.info("Huge transactions are ${if (hugeTransactions) "enabled" else "disabled"}.")
-        logger.info("Print errors to discord is ${if (hugeTransactions) "enabled" else "disabled"}.")
+        logger.info("Print errors to discord is ${if (printErrorsToDiscord) "enabled" else "disabled"}.")
     }
 }

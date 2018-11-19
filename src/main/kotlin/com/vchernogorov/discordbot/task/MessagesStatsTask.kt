@@ -1,5 +1,8 @@
 package com.vchernogorov.discordbot.task
 
+import com.vchernogorov.discordbot.UserStatsArgs
+import com.xenomachina.argparser.ArgParser
+import com.xenomachina.argparser.mainBody
 import mu.KotlinLogging
 import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.entities.Member
@@ -10,12 +13,7 @@ import net.dv8tion.jda.core.utils.PermissionUtil
 abstract class MessagesStatsTask : MessageTask {
     private val logger = KotlinLogging.logger {}
 
-    abstract fun execute(
-            event: MessageReceivedEvent,
-            members: List<Member> = emptyList(),
-            channels: List<TextChannel> = emptyList(),
-            messageExcFilter: List<String> = emptyList(),
-            messageIncFilter: List<String> = emptyList())
+    abstract fun execute(event: MessageReceivedEvent, args: UserStatsArgs)
 
     override fun execute(event: MessageReceivedEvent, vararg params: String) = with(event.guild) {
         if (PermissionUtil.checkPermission(event.textChannel, event.guild.selfMember, Permission.MESSAGE_MANAGE)) {
@@ -23,18 +21,7 @@ abstract class MessagesStatsTask : MessageTask {
         } else {
             logger.warn { "Bot doesn't have ${Permission.MESSAGE_MANAGE} permission. Request message won't be deleted." }
         }
-        val textChannels = if (params.isEmpty()) textChannels else params
-                .map { name -> getTextChannelsByName(name, true) }
-                .flatten()
-        val members = if (params.isEmpty()) members else params
-                .map { name ->
-                    listOf<Member>()
-                            .union(getMembersByName(name, true))
-                            .union(getMembersByNickname(name, true))
-                            .union(getMembersByEffectiveName(name, true))
-                }
-                .flatten()
-        execute(event, members, textChannels)
+        execute(event, ArgParser(params).parseInto { UserStatsArgs(it, event.textChannel) })
     }
 
     //

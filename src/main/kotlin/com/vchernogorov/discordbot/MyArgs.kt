@@ -33,7 +33,7 @@ class MyArgs(parser: ArgParser) {
     val printErrorsToDiscord by parser.flagging(
             "--printErrorsToDiscord",
             help = "if active, all exceptions will be printed to logs AND discord channel where it occurred"
-    ).default(false)
+    ).default(true)
 
     val removeOriginalRequest by parser.flagging(
             "--removeOriginalRequest",

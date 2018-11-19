@@ -64,7 +64,6 @@ task wrapper(type: Wrapper) {
 }
 
 task stage {
-    dependsOn ktlint
     dependsOn installDist
 }
 

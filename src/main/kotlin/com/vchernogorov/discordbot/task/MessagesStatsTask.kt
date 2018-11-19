@@ -1,19 +1,24 @@
 package com.vchernogorov.discordbot.task
 
+import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.entities.Member
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
+import net.dv8tion.jda.core.utils.PermissionUtil
 
 abstract class MessagesStatsTask : MessageTask {
 
     abstract fun execute(
             event: MessageReceivedEvent,
-            users: List<Member> = emptyList(),
+            members: List<Member> = emptyList(),
             channels: List<TextChannel> = emptyList(),
             messageExcFilter: List<String> = emptyList(),
             messageIncFilter: List<String> = emptyList())
 
     override fun execute(event: MessageReceivedEvent, vararg params: String) = with(event.guild) {
+        if (PermissionUtil.checkPermission(event.textChannel, event.guild.selfMember, Permission.MESSAGE_MANAGE)) {
+            event.channel.deleteMessageById(event.messageId).queue()
+        }
         val textChannels = if (params.isEmpty()) textChannels else params
                 .map { name -> getTextChannelsByName(name, true) }
                 .flatten()

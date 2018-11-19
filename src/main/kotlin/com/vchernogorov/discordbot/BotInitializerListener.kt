@@ -54,7 +54,7 @@ class BotInitializerListener(val fetchDelayMillis: Long,
                 delay(fetchDelayMillis)
                 for (guild in event.jda.guilds) {
                     for (channel in guild.textChannels
-                            .filter { PermissionUtil.checkPermission(it, it.guild.selfMember, Permission.MESSAGE_READ) }) {
+                            .filter { §§ }) {
                         if (!lastMessageByChannel.containsKey(channel)) {
                             lastMessageByChannel[channel] = null
                         }

@@ -5,7 +5,7 @@ import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 
 class ChannelStatsTask : MessagesStatsTask() {
-    override fun execute(event: MessageReceivedEvent, users: List<Member>, channels: List<TextChannel>, messageExcFilter: List<String>, messageIncFilter: List<String>) {
+    override fun execute(event: MessageReceivedEvent, members: List<Member>, channels: List<TextChannel>, messageExcFilter: List<String>, messageIncFilter: List<String>) {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 }

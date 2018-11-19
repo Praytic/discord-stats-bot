@@ -30,6 +30,8 @@ enum class Mode {
     USER_STATS,
     PRINT_STATS,
     EMOTE_STATS,
+    TOP_EMOTE_USAGE_STATS,
+    TOP_USED_EMOTE_BY_USER,
     UNDEFINED
 }
 

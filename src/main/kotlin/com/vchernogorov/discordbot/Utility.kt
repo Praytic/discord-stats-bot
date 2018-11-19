@@ -4,6 +4,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.delay
 import mu.KotlinLogging
+import net.dv8tion.jda.core.MessageBuilder
 import net.dv8tion.jda.core.entities.MessageChannel
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 
@@ -14,6 +15,9 @@ inline fun <reified T> Gson.fromJson(json: String) =
 
 fun MessageReceivedEvent.send(message: String) =
         textChannel.sendMessage(net.dv8tion.jda.core.MessageBuilder().append(message).build()).complete()
+
+fun MessageReceivedEvent.send(messageBuilder: MessageBuilder) =
+        textChannel.sendMessage(messageBuilder.build()).complete()
 
 fun MessageChannel.getLatestMessageIdSafe(): String? {
     return try {

@@ -35,6 +35,11 @@ class MyArgs(parser: ArgParser) {
             help = "if active, all exceptions will be printed to logs AND discord channel where it occurred"
     ).default(false)
 
+    val removeOriginalRequest by parser.flagging(
+            "--removeOriginalRequest",
+            help = "if active, original request message will be removed"
+    ).default(false)
+
     fun printArgs(logger: Logger) {
         logger.info("Fetch delay is set to ${fetchDelay / 1000.0} seconds.")
         logger.info("Create schemas on startup is ${if (createSchemas) "enabled" else "disabled"}.")
@@ -42,5 +47,6 @@ class MyArgs(parser: ArgParser) {
         logger.info("Backoff retry factor is set to $backoffRetryFactor.")
         logger.info("Huge transactions are ${if (hugeTransactions) "enabled" else "disabled"}.")
         logger.info("Print errors to discord is ${if (printErrorsToDiscord) "enabled" else "disabled"}.")
+        logger.info("Remove original request message is ${if (removeOriginalRequest) "enabled" else "disabled"}.")
     }
 }

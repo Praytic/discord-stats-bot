@@ -16,11 +16,6 @@ abstract class MessagesStatsTask : MessageTask {
     abstract fun execute(event: MessageReceivedEvent, args: UserStatsArgs)
 
     override fun execute(event: MessageReceivedEvent, vararg params: String) = with(event.guild) {
-        if (PermissionUtil.checkPermission(event.textChannel, event.guild.selfMember, Permission.MESSAGE_MANAGE)) {
-            event.channel.deleteMessageById(event.messageId).queue()
-        } else {
-            logger.warn { "Bot doesn't have ${Permission.MESSAGE_MANAGE} permission. Request message won't be deleted." }
-        }
         execute(event, ArgParser(params).parseInto { UserStatsArgs(it, event.textChannel) })
     }
 

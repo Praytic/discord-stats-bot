@@ -27,7 +27,8 @@ fun main(args: Array<String>) = ArgParser(args).parseInto(::MyArgs).run {
 
     try {
         initDatabase(createSchemas, logger)
-        initJda(BotInitializerListener(fetchDelay, backoffRetryDelay, backoffRetryFactor, hugeTransactions), printErrorsToDiscord)
+        initJda(BotInitializerListener(fetchDelay, backoffRetryDelay, backoffRetryFactor, hugeTransactions),
+                printErrorsToDiscord, removeOriginalRequest)
     } catch (e: Throwable) {
         logger.error(e) { "Stopping app because of the initialization error." }
         server.stop()
@@ -52,9 +53,9 @@ fun initDatabase(createSchemas: Boolean, logger: KLogger): Database {
     return connect
 }
 
-fun initJda(botInitializer: BotInitializerListener, printErrorsToDiscord: Boolean): JDA {
+fun initJda(botInitializer: BotInitializerListener, printErrorsToDiscord: Boolean, removeOriginalRequest: Boolean): JDA {
     return JDABuilder(AccountType.BOT)
-            .addEventListener(OwnerCommandListener(printErrorsToDiscord))
+            .addEventListener(OwnerCommandListener(printErrorsToDiscord, removeOriginalRequest))
             .addEventListener(botInitializer)
             .setToken(System.getenv("BOT_TOKEN") ?: throw Exception("Token wasn't populated."))
             .build()

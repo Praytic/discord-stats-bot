@@ -48,4 +48,10 @@ class UserStatsArgs(parser: ArgParser, channel: TextChannel) {
                     .singleOrNull() ?: throw Exception("Unable to uniquely identify channel with name $it.")
         }
     }.default(channel.guild.textChannels)
+
+    val tail by parser.flagging(
+            "--tail",
+            help = "when active, tail results will be shown instead of top results. " +
+                    "Example: --tail"
+    ).default(false)
 }

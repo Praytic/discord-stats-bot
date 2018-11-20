@@ -1,6 +1,7 @@
 package com.vchernogorov.discordbot
 
 import com.vchernogorov.discordbot.task.ChannelStatsTask
+import com.vchernogorov.discordbot.task.GuildAverageUsageEmoteStatsTask
 import com.vchernogorov.discordbot.task.GuildMostUsedEmoteStatsTask
 import com.vchernogorov.discordbot.task.UserEmoteStatsTask
 import com.vchernogorov.discordbot.task.UserStatsTask
@@ -25,7 +26,8 @@ class OwnerCommandListener(val printErrorsToDiscord: Boolean,
             Mode.USER_STATS to UserStatsTask(),
             Mode.EMOTE_STATS to UserEmoteStatsTask(),
             Mode.TOP_EMOTE_USAGE_STATS to GuildMostUsedEmoteStatsTask(),
-            Mode.TOP_USED_EMOTES_BY_USERS to UsersMostUsedEmoteStatsTask()
+            Mode.TOP_USED_EMOTES_BY_USERS to UsersMostUsedEmoteStatsTask(),
+            Mode.TOP_EMOTE_DAILY_USAGE_STATS to GuildAverageUsageEmoteStatsTask()
     )
 
     override fun onMessageReceived(event: MessageReceivedEvent) {

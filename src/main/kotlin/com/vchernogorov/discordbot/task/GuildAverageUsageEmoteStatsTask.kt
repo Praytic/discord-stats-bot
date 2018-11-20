@@ -32,8 +32,8 @@ class GuildAverageUsageEmoteStatsTask : MessagesStatsTask() {
                 emoteIds.map { Triple(member, event.jda.getEmoteById(it), creationDate) }
             }.flatten()
             emotesByMember
-        }.filter { (_, emote, _) ->
-            emote != null
+        }.filter { (user, emote, _) ->
+            emote != null && !user.isBot
         }
 
         val minCreationDateByEmote = emotesUsed.distinctBy { (_, emote, _) ->

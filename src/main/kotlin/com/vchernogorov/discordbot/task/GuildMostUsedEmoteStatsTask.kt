@@ -28,11 +28,12 @@ class GuildMostUsedEmoteStatsTask : MessagesStatsTask() {
                 emoteIds.map { member to event.jda.getEmoteById(it) }
             }.flatten()
             emotesByMember
+        }.filter {
+            !it.first.isBot && it.second != null
         }
                 .groupingBy { it.second }
                 .eachCount()
                 .toList()
-                .filter { it.first != null }
                 .sortedByDescending { it.second }
                 .take(args.limitPrimaryResults)
 

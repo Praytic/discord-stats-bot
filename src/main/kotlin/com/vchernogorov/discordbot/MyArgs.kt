@@ -13,7 +13,7 @@ class MyArgs(parser: ArgParser) {
     val createSchemas by parser.flagging(
             "--createSchemas",
             help = "if active, missing schemas will be created on startup"
-    ).default(false)
+    )
 
     val backoffRetryDelay by parser.storing(
             "--backoffRetryDelay",
@@ -25,28 +25,28 @@ class MyArgs(parser: ArgParser) {
             help = "sets the multiplier factor of backoff retry mechanism on failed database request"
     ) { toDouble() }.default(1.0)
 
-    val hugeTransactions by parser.flagging(
-            "--hugeTransactions",
-            help = "if active, huge transactions can be made"
-    ).default(false)
-
     val printErrorsToDiscord by parser.flagging(
             "--printErrorsToDiscord",
             help = "if active, all exceptions will be printed to logs AND discord channel where it occurred"
-    ).default(true)
+    )
 
     val removeOriginalRequest by parser.flagging(
             "--removeOriginalRequest",
             help = "if active, original request message will be removed"
-    ).default(false)
+    )
+
+    val limitSelection by parser.storing(
+            "--limitSelection",
+            help = "sets how much result rows one selection query should contain"
+    ) { toInt() }.default(1000)
 
     fun printArgs(logger: Logger) {
         logger.info("Fetch delay is set to ${fetchDelay / 1000.0} seconds.")
         logger.info("Create schemas on startup is ${if (createSchemas) "enabled" else "disabled"}.")
         logger.info("Backoff retry delay is set to ${backoffRetryDelay / 60000.0} minutes.")
         logger.info("Backoff retry factor is set to $backoffRetryFactor.")
-        logger.info("Huge transactions are ${if (hugeTransactions) "enabled" else "disabled"}.")
         logger.info("Print errors to discord is ${if (printErrorsToDiscord) "enabled" else "disabled"}.")
         logger.info("Remove original request message is ${if (removeOriginalRequest) "enabled" else "disabled"}.")
+        logger.info("Selections result set is limited by ${limitSelection} size per fetch.")
     }
 }

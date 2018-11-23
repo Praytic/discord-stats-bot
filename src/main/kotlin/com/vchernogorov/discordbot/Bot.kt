@@ -7,6 +7,7 @@ import mu.KotlinLogging
 import net.dv8tion.jda.core.AccountType
 import net.dv8tion.jda.core.JDA
 import net.dv8tion.jda.core.JDABuilder
+import net.dv8tion.jda.core.hooks.ListenerAdapter
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SchemaUtils
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -25,10 +26,14 @@ fun main(args: Array<String>) = ArgParser(args).parseInto(::MyArgs).run {
         }.handlers { it.get("health", HealthCheckHandler()) }
     }
 
+    val queriesManager = QueriesManager(limitSelection)
+    val transactionsManager = TransactionsManager(queriesManager)
     try {
         initDatabase(createSchemas, logger)
-        initJda(BotInitializerListener(fetchDelay, backoffRetryDelay, backoffRetryFactor, hugeTransactions),
-                printErrorsToDiscord, removeOriginalRequest)
+        initJda(listOf(
+                BotInitializerListener(fetchDelay, backoffRetryDelay, backoffRetryFactor, transactionsManager),
+                OwnerCommandListener(printErrorsToDiscord, removeOriginalRequest, transactionsManager)
+        ))
     } catch (e: Throwable) {
         logger.error(e) { "Stopping app because of the initialization error." }
         server.stop()
@@ -53,10 +58,9 @@ fun initDatabase(createSchemas: Boolean, logger: KLogger): Database {
     return connect
 }
 
-fun initJda(botInitializer: BotInitializerListener, printErrorsToDiscord: Boolean, removeOriginalRequest: Boolean): JDA {
+fun initJda(listeners: List<ListenerAdapter>): JDA {
     return JDABuilder(AccountType.BOT)
-            .addEventListener(OwnerCommandListener(printErrorsToDiscord, removeOriginalRequest))
-            .addEventListener(botInitializer)
+            .addEventListener(listeners)
             .setToken(System.getenv("BOT_TOKEN") ?: throw Exception("Token wasn't populated."))
             .build()
 }

@@ -16,7 +16,7 @@ import java.time.Instant
 class BotInitializerListener(val fetchDelayMillis: Long,
                              val backoffRetryDelay: Long,
                              val backoffRetryFactor: Double,
-                             val bulkMessageIdsSelection: Boolean) : ListenerAdapter() {
+                             val transactionsManager: TransactionsManager) : ListenerAdapter() {
     private val logger = KotlinLogging.logger {}
 
     override fun onReady(event: ReadyEvent) {
@@ -25,26 +25,17 @@ class BotInitializerListener(val fetchDelayMillis: Long,
 
         logger.info("Initializing 'last messages IDs by channel' map.")
         for (guild in event.jda.guilds) {
-            val messageIds = if (bulkMessageIdsSelection) {
-                latestSavedMessages(guild.textChannels.map { it.id })
-            } else {
-                guild.textChannels.map { it.id to latestSavedMessages(listOf(it.id))[it.id] }.toMap()
-            }
+            val messageIdsByChannelIds = transactionsManager.latestSavedMessages(guild.textChannels)
             for (channel in guild.textChannels) {
-                lastMessageByChannel[channel] = messageIds[channel.id]
+                lastMessageByChannel[channel] = messageIdsByChannelIds[channel.id]
             }
         }
 
         logger.info("Initializing 'first messages IDs by channel' map.")
         for (guild in event.jda.guilds) {
-            // Not working because of GC overhead error
-            val messageIds = if (bulkMessageIdsSelection) {
-                firstSavedMessages(guild.textChannels.map { it.id })
-            } else {
-                guild.textChannels.map { it.id to firstSavedMessages(listOf(it.id))[it.id] }.toMap()
-            }
+            val messageIdsByChannelIds = transactionsManager.firstSavedMessages(guild.textChannels)
             for (channel in guild.textChannels) {
-                firstMessageByChannel[channel] = messageIds[channel.id]
+                firstMessageByChannel[channel] = messageIdsByChannelIds[channel.id]
             }
         }
 
@@ -91,7 +82,7 @@ class BotInitializerListener(val fetchDelayMillis: Long,
                             latestSavedMessageId
                         }, 100).complete().retrievedHistory
                 if (newMessages.isNotEmpty()) {
-                    uploadMessages(newMessages)
+                    transactionsManager.uploadMessages(newMessages)
                     latestSavedMessageId = newMessages.maxBy { it.creationTime }?.id
                     newMessagesUploaded += newMessages.size
                 } else {
@@ -118,7 +109,7 @@ class BotInitializerListener(val fetchDelayMillis: Long,
                     break
                 }
                 if (newMessages.isNotEmpty()) {
-                    uploadMessages(newMessages, false)
+                    transactionsManager.uploadMessages(newMessages, false)
                     firstSavedMessageId = newMessages.minBy { it.creationTime }?.id
                     newMessagesUploaded += newMessages.size
                 }

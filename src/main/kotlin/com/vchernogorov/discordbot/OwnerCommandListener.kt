@@ -18,7 +18,8 @@ import java.io.PrintStream
 import java.nio.charset.StandardCharsets
 
 class OwnerCommandListener(val printErrorsToDiscord: Boolean,
-                           val removeOriginalRequest: Boolean) : ListenerAdapter() {
+                           val removeOriginalRequest: Boolean,
+                           val transactionsManager: TransactionsManager) : ListenerAdapter() {
     private val logger = KotlinLogging.logger {}
 
     val tasks = mapOf(
@@ -27,7 +28,7 @@ class OwnerCommandListener(val printErrorsToDiscord: Boolean,
             Mode.EMOTE_STATS to UserEmoteStatsTask(),
             Mode.TOP_EMOTE_USAGE_STATS to GuildMostUsedEmoteStatsTask(),
             Mode.TOP_USED_EMOTES_BY_USERS to UsersMostUsedEmoteStatsTask(),
-            Mode.TOP_EMOTE_DAILY_USAGE_STATS to GuildAverageUsageEmoteStatsTask()
+            Mode.TOP_EMOTE_DAILY_USAGE_STATS to GuildAverageUsageEmoteStatsTask(transactionsManager)
     )
 
     override fun onMessageReceived(event: MessageReceivedEvent) {

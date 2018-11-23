@@ -1,67 +1,60 @@
 package com.vchernogorov.discordbot.task
 
-import com.vchernogorov.discordbot.UserMessage
+import com.vchernogorov.discordbot.TransactionsManager
 import com.vchernogorov.discordbot.UserStatsArgs
 import com.vchernogorov.discordbot.send
+import net.dv8tion.jda.core.JDA
 import net.dv8tion.jda.core.MessageBuilder
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
-import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.select
-import org.jetbrains.exposed.sql.transactions.transaction
 import java.time.LocalDate
 import java.time.OffsetDateTime
-import java.time.Period
 import java.time.temporal.ChronoUnit
 
-class GuildAverageUsageEmoteStatsTask : MessagesStatsTask() {
+class GuildAverageUsageEmoteStatsTask(val transactionsManager: TransactionsManager) : MessagesStatsTask() {
 
     override fun execute(event: MessageReceivedEvent, args: UserStatsArgs) {
-        val emotesUsed = transaction {
-            val emoteRegex = "<:(.*?):[0-9]{18}>".toRegex()
-            val result = UserMessage.slice(UserMessage.content, UserMessage.creatorId, UserMessage.creationDate).select {
-                (UserMessage.creatorId.inList((if (args.members.isNotEmpty()) args.members else event.guild.members).map { it.user.id })) and
-                        (UserMessage.channelId.inList((if (args.channels.isNotEmpty()) args.channels else event.guild.textChannels).map { it.id }))
-            }
-            val emotesByMember = result.map {
-                Triple(it[UserMessage.creatorId], emoteRegex.findAll(it[UserMessage.content], 0).toList(), OffsetDateTime.parse(it[UserMessage.creationDate]))
-            }.filterNot { (_, emotes, _) ->
-                emotes.isEmpty()
-            }.map { (creatorId, emotes, creationDate) ->
-                val emoteIds = emotes.map { it.value.dropLast(1).takeLast(18) }
-                val member = event.jda.getUserById(creatorId)
-                emoteIds.map { Triple(member, event.jda.getEmoteById(it), creationDate) }
-            }.flatten()
-            emotesByMember
-        }.filter { (user, emote, _) ->
-            emote != null && !user.isBot
-        }
+        val emotesUsed = transactionsManager.selectEmotesByCreatorsAndCreationDate(event.guild, args)
+        val minCreationDateByEmote = minCreationDateByEmote(emotesUsed)
+        val sortedEmotesUsed = sortEmotesByUsageRate(emotesUsed, minCreationDateByEmote)
+        val messageBuilder = generateResponseMessage(event.jda, sortedEmotesUsed, args)
+        event.send(messageBuilder)
+    }
 
-        val minCreationDateByEmote = emotesUsed.distinctBy { (_, emote, _) ->
+    fun generateResponseMessage(jda: JDA, emotesUsed: List<Triple<String, Int, Double>>, args: UserStatsArgs): MessageBuilder {
+        val messageBuilder = MessageBuilder().append("[Emote average usage per day in guild]\n")
+        emotesUsed.forEachIndexed { i, (emote, count, usageRate) ->
+            if (args.tail && emotesUsed.count() - args.limitPrimaryResults <= i ||
+                    !args.tail && args.limitPrimaryResults > i) {
+                messageBuilder
+                        .append("${i + 1}. ")
+                        .append(jda.getEmoteById(emote))
+                        .append(": `%.2f | $count`\n".format(usageRate))
+            }
+        }
+        return messageBuilder
+    }
+
+    private fun minCreationDateByEmote(emotesUsed: List<Triple<String, String, OffsetDateTime>>): Map<String, LocalDate?> {
+        return emotesUsed.distinctBy { (_, emote, _) ->
             emote
         }.map { (_, emote, _) ->
-            emote to emotesUsed.filter { it.second == emote }.map {  (_, _, creationDate) ->
+            emote to emotesUsed.filter {
+                it.second == emote
+            }.map { (_, _, creationDate) ->
                 creationDate
             }.min()?.toLocalDate()
         }.toMap()
+    }
 
-        val sortedEmotesUsed = emotesUsed.groupingBy {
+    private fun sortEmotesByUsageRate(emotesUsed: List<Triple<String, String, OffsetDateTime>>,
+                                      minCreationDateByEmote: Map<String, LocalDate?>): List<Triple<String, Int, Double>> {
+        return emotesUsed.groupingBy {
             it.second
-        }.eachCount().filter { (emote) ->
-            emote != null
-        }.map { (emote, count) ->
+        }.eachCount().map { (emote, count) ->
             val daysLive = ChronoUnit.DAYS.between(minCreationDateByEmote[emote], LocalDate.now())
-            emote to count to count * 1.0 / daysLive
-        }.toList().sortedByDescending { (_, usageRate) ->
+            Triple(emote, count, count * 1.0 / daysLive)
+        }.toList().sortedByDescending { (_, _, usageRate) ->
             usageRate
         }
-
-        val messageBuilder = MessageBuilder().append("[Emote average usage per day in guild]\n")
-        sortedEmotesUsed.forEachIndexed { i, (emote, usageRate) ->
-            if (args.tail && sortedEmotesUsed.count() - args.limitPrimaryResults <= i ||
-                    !args.tail && args.limitPrimaryResults > i) {
-                messageBuilder.append("${i + 1}. ").append(emote.first).append(": `%.2f | ${emote.second}`\n".format(usageRate))
-            }
-        }
-        event.send(messageBuilder)
     }
 }

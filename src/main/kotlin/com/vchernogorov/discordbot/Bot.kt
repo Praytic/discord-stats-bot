@@ -30,10 +30,8 @@ fun main(args: Array<String>) = ArgParser(args).parseInto(::MyArgs).run {
     val transactionsManager = TransactionsManager(queriesManager)
     try {
         initDatabase(createSchemas, logger)
-        initJda(listOf(
-                BotInitializerListener(fetchDelay, backoffRetryDelay, backoffRetryFactor, transactionsManager),
-                OwnerCommandListener(printErrorsToDiscord, removeOriginalRequest, transactionsManager)
-        ))
+        initJda(BotInitializerListener(fetchDelay, backoffRetryDelay, backoffRetryFactor, transactionsManager),
+                OwnerCommandListener(printErrorsToDiscord, removeOriginalRequest, transactionsManager))
     } catch (e: Throwable) {
         logger.error(e) { "Stopping app because of the initialization error." }
         server.stop()
@@ -58,9 +56,12 @@ fun initDatabase(createSchemas: Boolean, logger: KLogger): Database {
     return connect
 }
 
-fun initJda(listeners: List<ListenerAdapter>): JDA {
-    return JDABuilder(AccountType.BOT)
-            .addEventListener(listeners)
+fun initJda(vararg listeners: ListenerAdapter): JDA {
+    val jdaBuilder = JDABuilder(AccountType.BOT)
+    listeners.forEach {
+        jdaBuilder.addEventListener(it)
+    }
+    return jdaBuilder
             .setToken(System.getenv("BOT_TOKEN") ?: throw Exception("Token wasn't populated."))
             .build()
 }

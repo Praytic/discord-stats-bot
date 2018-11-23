@@ -41,10 +41,36 @@ suspend fun backoffRetry(
             return block()
         } catch (e: Exception) {
             attempt++
-            logger.error(e) {"Retrying job [$name] after ${currentDelay/1000} seconds." }
+            logger.error(e) { "Retrying job [$name] after ${currentDelay / 1000} seconds." }
         }
         delay(currentDelay)
         currentDelay = (currentDelay * factor).toLong().coerceAtMost(maxDelay)
     }
     block()
+}
+
+/**
+ * Accumulates value starting with the first element and applying [operation] from left to right to current accumulator
+ * value and each element until [predicate] is true. After [predicate] becomes false, new accumulator will be created.
+ * The result value is a list of accumulators divided by [predicate].
+ */
+public inline fun <S, reified T : S> Iterable<T>.reduceUntil(predicate: (acc: S, T) -> Boolean, operation: (acc: S, T) -> S): List<S> {
+    val iterator = this.iterator()
+    if (!iterator.hasNext()) throw UnsupportedOperationException("Empty collection can't be reduced.")
+    var next: T = iterator.next()
+    val newList = mutableListOf<S>()
+    while (iterator.hasNext()) {
+        var accumulator: S = next
+        next = iterator.next()
+        while (iterator.hasNext()) {
+            if (!predicate(accumulator, next)) {
+                accumulator = operation(accumulator, next)
+            } else {
+                break
+            }
+            next = iterator.next()
+        }
+        newList.add(accumulator)
+    }
+    return newList
 }

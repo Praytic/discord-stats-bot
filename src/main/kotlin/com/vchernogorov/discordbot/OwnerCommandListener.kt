@@ -19,7 +19,7 @@ import java.nio.charset.StandardCharsets
 
 class OwnerCommandListener(val printErrorsToDiscord: Boolean,
                            val removeOriginalRequest: Boolean,
-                           val transactionsManager: TransactionsManager) : ListenerAdapter() {
+                           transactionsManager: TransactionsManager) : ListenerAdapter() {
     private val logger = KotlinLogging.logger {}
 
     val tasks = mapOf(
@@ -60,8 +60,13 @@ class OwnerCommandListener(val printErrorsToDiscord: Boolean,
             val writer = OutputStreamWriter(baos)
             se.printUserMessage(writer, null, 80)
             writer.flush()
-            event.send("```command: $mode\n\n" +
-                    "${String(baos.toByteArray(), StandardCharsets.UTF_8)}```")
+            val splittedHelpMessage = String(baos.toByteArray(), StandardCharsets.UTF_8).split("\n")
+            val helpMessage = splittedHelpMessage.reduceUntil({ acc, s -> acc.length + s.length > 2000 }) { acc, s ->
+                acc + "\n" + s
+            }
+            helpMessage.forEach {
+                event.send("```$it```")
+            }
         } catch (e: Exception) {
             if (printErrorsToDiscord) {
                 if (PermissionUtil.checkPermission(event.textChannel, event.guild.selfMember, Permission.MESSAGE_WRITE)) {

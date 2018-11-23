@@ -3,14 +3,15 @@ package com.vchernogorov.discordbot
 import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.Member
 import net.dv8tion.jda.core.entities.TextChannel
+import org.jetbrains.exposed.sql.Query
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.select
-import javax.xml.soap.Text
 
 /**
- * Query manager
+ * Queries manager contains different [Query]s for common use in the application.
+ * [fetchSize] is used to limit big requests by selecting no more than [fetchSize] records in one go.
  */
-class QueriesManager(val limitSelection: Int) {
+class QueriesManager(val fetchSize: Int) {
 
     /**
      * Selects [UserMessage]s sliced by [UserMessage.content], [UserMessage.creatorId], [UserMessage.creationDate]
@@ -26,7 +27,7 @@ class QueriesManager(val limitSelection: Int) {
                     )
                     .select { (UserMessage.creatorId.inList((if (members.isNotEmpty()) members else guild.members).map { it.user.id })) and
                             (UserMessage.channelId.inList((if (channels.isNotEmpty()) channels else guild.textChannels).map { it.id }))
-                    }.limit(limitSelection)
+                    }.fetchSize(fetchSize)
 
     /**
      * Selects [UserMessage]s sliced by [UserMessage.id], [UserMessage.channelId], [UserMessage.creationDate]
@@ -35,5 +36,5 @@ class QueriesManager(val limitSelection: Int) {
     fun selectUserMessagesByChannels(channels: List<TextChannel>) =
             UserMessage.slice(UserMessage.id, UserMessage.channelId, UserMessage.creationDate).select {
                 UserMessage.channelId.inList(channels.map { it.id })
-            }.limit(limitSelection)
+            }.fetchSize(fetchSize)
 }

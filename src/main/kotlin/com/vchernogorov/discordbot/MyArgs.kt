@@ -2,7 +2,6 @@ package com.vchernogorov.discordbot
 
 import com.xenomachina.argparser.ArgParser
 import com.xenomachina.argparser.default
-import mu.KLogger
 import org.slf4j.Logger
 
 class MyArgs(parser: ArgParser) {
@@ -35,8 +34,8 @@ class MyArgs(parser: ArgParser) {
             help = "if active, original request message will be removed"
     )
 
-    val limitSelection by parser.storing(
-            "--limitSelection",
+    val fetchSize by parser.storing(
+            "--fetchSize",
             help = "sets how much result rows one selection query should contain"
     ) { toInt() }.default(1000)
 
@@ -47,6 +46,6 @@ class MyArgs(parser: ArgParser) {
         logger.info("Backoff retry factor is set to $backoffRetryFactor.")
         logger.info("Print errors to discord is ${if (printErrorsToDiscord) "enabled" else "disabled"}.")
         logger.info("Remove original request message is ${if (removeOriginalRequest) "enabled" else "disabled"}.")
-        logger.info("Selections result set is limited by $limitSelection size per fetch.")
+        logger.info("Selections result set is limited by $fetchSize size per fetch.")
     }
 }

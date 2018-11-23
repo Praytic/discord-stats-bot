@@ -1,1 +1,1 @@
-web: build/install/discord-stats-bot/bin/discord-stats-bot
+web: build/install/discord-stats-bot/bin/discord-stats-bot --printErrorsToDiscord

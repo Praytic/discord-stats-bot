@@ -35,5 +35,5 @@ class QueriesManager(val limitSelection: Int) {
     fun selectUserMessagesByChannels(channels: List<TextChannel>) =
             UserMessage.slice(UserMessage.id, UserMessage.channelId, UserMessage.creationDate).select {
                 UserMessage.channelId.inList(channels.map { it.id })
-            }
+            }.limit(limitSelection)
 }

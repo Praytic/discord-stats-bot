@@ -47,6 +47,6 @@ class MyArgs(parser: ArgParser) {
         logger.info("Backoff retry factor is set to $backoffRetryFactor.")
         logger.info("Print errors to discord is ${if (printErrorsToDiscord) "enabled" else "disabled"}.")
         logger.info("Remove original request message is ${if (removeOriginalRequest) "enabled" else "disabled"}.")
-        logger.info("Selections result set is limited by ${limitSelection} size per fetch.")
+        logger.info("Selections result set is limited by $limitSelection size per fetch.")
     }
 }

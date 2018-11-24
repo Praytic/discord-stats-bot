@@ -6,9 +6,13 @@ import net.dv8tion.jda.core.entities.User
 import net.dv8tion.jda.core.entities.Emote
 import net.dv8tion.jda.core.entities.Message
 import net.dv8tion.jda.core.entities.TextChannel
+import org.jetbrains.exposed.sql.Op
+import org.jetbrains.exposed.sql.QueryBuilder
+import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.batchInsert
-import org.jetbrains.exposed.sql.select
+import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transaction
+import java.sql.ResultSet
 import java.time.OffsetDateTime
 
 /**
@@ -44,7 +48,7 @@ class TransactionsManager(val queriesManager: QueriesManager) {
      * [UserMessage.channelId]s should be contained in [channelIds] list.
      */
     fun latestSavedMessages(channels: List<TextChannel>) = transaction {
-        queriesManager.selectUserMessagesByChannels(channels).groupBy {
+        selectByChunks(queriesManager.selectUserMessagesByChannels(channels)).flatten().groupBy {
             it[UserMessage.channelId]
         }.map {
             it.key to it.value.maxBy {
@@ -81,4 +85,41 @@ class TransactionsManager(val queriesManager: QueriesManager) {
         }
     }
 
+    fun selectByChunks(query: Query): List<List<ResultRow>> = transaction {
+        val prepareSQL = query.prepareSQL(QueryBuilder(false))
+        val createTempTable = "CREATE TEMPORARY TABLE ${TempId.nameInDatabaseCase()} AS (" +
+                "  SELECT prep.${TempId.id.name}" +
+                "  FROM ($prepareSQL) AS prep" +
+                "  ORDER BY prep.${TempId.id.name}" +
+                ")"
+        exec(createTempTable)
+        var rowsExtracted: Int? = null
+        var offset = 0
+        val queryRess = mutableListOf<List<ResultRow>>()
+        while (rowsExtracted != 0) {
+            transaction {
+                val messageIds = queriesManager.selectIds(offset).map { it[TempId.id] }
+                val queryRes = query.adjustWhere {
+                    Op.build {
+                        UserMessage.id.inList(messageIds)
+                    }
+                }.toList()
+                rowsExtracted = queryRes.count()
+                offset += queryRes.count()
+                queryRess.add(queryRes)
+            }
+        }
+        exec("DROP TEMPORARY TABLE IF EXISTS ${TempId.nameInDatabaseCase()}")
+        queryRess
+    }
+
+    fun <T : Any> String.execAndMap(transform : (ResultSet) -> T) : List<T> {
+        val result = arrayListOf<T>()
+        TransactionManager.current().exec(this) { rs ->
+            while (rs.next()) {
+                result += transform(rs)
+            }
+        }
+        return result
+    }
 }

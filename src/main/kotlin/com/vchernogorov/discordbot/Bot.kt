@@ -45,10 +45,18 @@ fun initDatabase(createSchemas: Boolean, logger: KLogger): Database {
     val username = dbUri.userInfo.split(":")[0]
     val password = dbUri.userInfo.split(":")[1]
     val dbUrl = "jdbc:mysql://" + dbUri.host + dbUri.path
-    val connect = Database.connect(url = dbUrl, driver = "com.mysql.jdbc.Driver", user = username, password = password)
+    val connect = Database.connect(
+            url = dbUrl,
+            driver = "com.mysql.jdbc.Driver",
+            user = username,
+            password = password,
+            setupConnection = {
+                it.autoCommit = false
+            })
     logger.info("Database connection has been established to $dbUrl for user $username.")
     if (createSchemas) {
         transaction {
+
             logger.info("Create missing schemas.")
             SchemaUtils.createMissingTablesAndColumns(UserMessage)
         }

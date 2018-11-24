@@ -1,6 +1,8 @@
 package com.vchernogorov.discordbot
 
+import org.jetbrains.exposed.dao.IdTable
 import org.jetbrains.exposed.sql.Table
+import sun.tools.jconsole.Tab
 import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.time.Period
@@ -16,6 +18,10 @@ data class UserStat(
         val joinDate: OffsetDateTime,
         val stringOccurrence: Map<String, Int>
 )
+
+object TempId : Table() {
+    val id = varchar("id", 20)
+}
 
 object UserMessage : Table() {
     val id = varchar("id", 20).primaryKey()

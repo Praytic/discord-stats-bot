@@ -1,8 +1,6 @@
 package com.vchernogorov.discordbot
 
-import org.jetbrains.exposed.dao.IdTable
 import org.jetbrains.exposed.sql.Table
-import sun.tools.jconsole.Tab
 import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.time.Period

@@ -15,18 +15,13 @@ class GuildAverageUsageEmoteStatsTask(val transactionsManager: TransactionsManag
 
     override fun execute(event: MessageReceivedEvent, args: UserStatsArgs) {
         val emotesUsed = transactionsManager.selectEmotesByCreatorsAndCreationDate(event.guild, args)
-        val minCreationDateByEmote = minCreationDateByEmote(emotesUsed)
-        val sortedEmotesUsed = sortEmotesByUsageRate(emotesUsed, minCreationDateByEmote)
-        val existingEmotesUsed = sortedEmotesUsed.map { (emote, count, usageRate) ->
-            Triple(event.jda.getEmoteById(emote), count, usageRate)
-        }.filter { (emote) ->
-            emote != null
-        }
-        val messageBuilder = generateResponseMessage(event.jda, existingEmotesUsed, args)
+        val minCreationDateByEmote = minCreationDateByEmote(event.jda, emotesUsed)
+        val sortedEmotesUsed = sortEmotesByUsageRate(event.jda, emotesUsed, minCreationDateByEmote)
+        val messageBuilder = generateResponseMessage(sortedEmotesUsed, args)
         event.send(messageBuilder)
     }
 
-    fun generateResponseMessage(jda: JDA, emotesUsed: List<Triple<Emote, Int, Double>>, args: UserStatsArgs): MessageBuilder {
+    fun generateResponseMessage(emotesUsed: List<Triple<Emote, Int, Double>>, args: UserStatsArgs): MessageBuilder {
         val messageBuilder = MessageBuilder().append("[Emote average usage per day in guild]\n")
         emotesUsed.forEachIndexed { i, (emote, count, usageRate) ->
             if (args.tail && emotesUsed.count() - args.limitPrimaryResults <= i ||
@@ -40,7 +35,7 @@ class GuildAverageUsageEmoteStatsTask(val transactionsManager: TransactionsManag
         return messageBuilder
     }
 
-    private fun minCreationDateByEmote(emotesUsed: List<Triple<String, String, OffsetDateTime>>): Map<String, LocalDate?> {
+    private fun minCreationDateByEmote(jda: JDA, emotesUsed: List<Triple<String, String, OffsetDateTime>>): Map<String, LocalDate?> {
         return emotesUsed.distinctBy { (_, emote, _) ->
             emote
         }.map { (_, emote, _) ->
@@ -52,14 +47,19 @@ class GuildAverageUsageEmoteStatsTask(val transactionsManager: TransactionsManag
         }.toMap()
     }
 
-    private fun sortEmotesByUsageRate(emotesUsed: List<Triple<String, String, OffsetDateTime>>,
-                                      minCreationDateByEmote: Map<String, LocalDate?>): List<Triple<String, Int, Double>> {
+    private fun sortEmotesByUsageRate(jda: JDA,
+                                      emotesUsed: List<Triple<String, String, OffsetDateTime>>,
+                                      minCreationDateByEmote: Map<String, LocalDate?>): List<Triple<Emote, Int, Double>> {
         return emotesUsed.groupingBy {
             it.second
         }.eachCount().map { (emote, count) ->
             val daysLive = ChronoUnit.DAYS.between(minCreationDateByEmote[emote], LocalDate.now())
             Triple(emote, count, count * 1.0 / daysLive)
-        }.toList().sortedByDescending { (_, _, usageRate) ->
+        }.map { (emote, count, usageRate) ->
+            Triple(jda.getEmoteById(emote), count, usageRate)
+        }.filter { (emote) ->
+            emote != null
+        }.sortedByDescending { (_, _, usageRate) ->
             usageRate
         }
     }

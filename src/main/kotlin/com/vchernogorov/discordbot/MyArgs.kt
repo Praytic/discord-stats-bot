@@ -39,6 +39,11 @@ class MyArgs(parser: ArgParser) {
             help = "sets how much result rows one selection query should contain"
     ) { toInt() }.default(1000)
 
+    val fetchMessages by parser.flagging(
+            "--fetchMessages",
+            help = "enables loading new and old messages from discord channels to the database"
+    )
+
     fun printArgs(logger: Logger) {
         logger.info("Fetch delay is set to ${fetchDelay / 1000.0} seconds.")
         logger.info("Create schemas on startup is ${if (createSchemas) "enabled" else "disabled"}.")
@@ -47,5 +52,6 @@ class MyArgs(parser: ArgParser) {
         logger.info("Print errors to discord is ${if (printErrorsToDiscord) "enabled" else "disabled"}.")
         logger.info("Remove original request message is ${if (removeOriginalRequest) "enabled" else "disabled"}.")
         logger.info("Selections result set is limited by $fetchSize size per fetch.")
+        logger.info("Fetching messages is ${if (fetchMessages) "enabled" else "disabled"}.")
     }
 }

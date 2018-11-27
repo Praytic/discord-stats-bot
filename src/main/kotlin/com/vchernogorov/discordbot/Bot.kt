@@ -30,8 +30,11 @@ fun main(args: Array<String>) = ArgParser(args).parseInto(::MyArgs).run {
     val transactionsManager = TransactionsManager(queriesManager)
     try {
         initDatabase(createSchemas, logger)
-        initJda(BotInitializerListener(fetchDelay, backoffRetryDelay, backoffRetryFactor, transactionsManager),
-                OwnerCommandListener(printErrorsToDiscord, removeOriginalRequest, transactionsManager))
+        val listeners = mutableListOf<ListenerAdapter>(OwnerCommandListener(printErrorsToDiscord, removeOriginalRequest, transactionsManager))
+        if (fetchMessages) {
+            listeners.add(FetchMessagesListener(fetchDelay, backoffRetryDelay, backoffRetryFactor, transactionsManager))
+        }
+        initJda(listeners)
     } catch (e: Throwable) {
         logger.error(e) { "Stopping app because of the initialization error." }
         server.stop()
@@ -56,7 +59,6 @@ fun initDatabase(createSchemas: Boolean, logger: KLogger): Database {
     logger.info("Database connection has been established to $dbUrl for user $username.")
     if (createSchemas) {
         transaction {
-
             logger.info("Create missing schemas.")
             SchemaUtils.createMissingTablesAndColumns(UserMessage)
         }
@@ -64,7 +66,7 @@ fun initDatabase(createSchemas: Boolean, logger: KLogger): Database {
     return connect
 }
 
-fun initJda(vararg listeners: ListenerAdapter): JDA {
+fun initJda(listeners: List<ListenerAdapter>): JDA {
     val jdaBuilder = JDABuilder(AccountType.BOT)
     listeners.forEach {
         jdaBuilder.addEventListener(it)

@@ -1,12 +1,12 @@
 package com.vchernogorov.discordbot
 
-import org.jetbrains.exposed.sql.Query
-import net.dv8tion.jda.core.entities.Guild
-import net.dv8tion.jda.core.entities.User
 import net.dv8tion.jda.core.entities.Emote
+import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.Message
 import net.dv8tion.jda.core.entities.TextChannel
+import net.dv8tion.jda.core.entities.User
 import org.jetbrains.exposed.sql.Op
+import org.jetbrains.exposed.sql.Query
 import org.jetbrains.exposed.sql.QueryBuilder
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.batchInsert
@@ -48,13 +48,18 @@ class TransactionsManager(val queriesManager: QueriesManager) {
      * [UserMessage.channelId]s should be contained in [channelIds] list.
      */
     fun latestSavedMessages(channels: List<TextChannel>) = transaction {
-        selectByChunks(queriesManager.selectUserMessagesByChannels(channels)).flatten().groupBy {
-            it[UserMessage.channelId]
-        }.map {
-            it.key to it.value.maxBy {
-                OffsetDateTime.parse(it[UserMessage.creationDate])
-            }?.get(UserMessage.id)
-        }.toMap()
+        val map = mutableMapOf<String, String?>()
+        selectByChunks(queriesManager.selectUserMessagesByChannels(channels)).forEach {
+            val toMap = it.groupBy {
+                it[UserMessage.channelId]
+            }.map {
+                it.key to it.value.maxBy {
+                    OffsetDateTime.parse(it[UserMessage.creationDate])
+                }?.get(UserMessage.id)
+            }.toMap()
+            map.putAll(toMap)
+        }
+        map
     }
 
     /**
@@ -85,19 +90,19 @@ class TransactionsManager(val queriesManager: QueriesManager) {
         }
     }
 
-    fun selectByChunks(query: Query): List<List<ResultRow>> = transaction {
-        val prepareSQL = query.prepareSQL(QueryBuilder(false))
-        val createTempTable = "CREATE TEMPORARY TABLE ${TempId.nameInDatabaseCase()} AS (" +
-                "  SELECT prep.${TempId.id.name}" +
-                "  FROM ($prepareSQL) AS prep" +
-                "  ORDER BY prep.${TempId.id.name}" +
-                ")"
-        exec(createTempTable)
-        var rowsExtracted: Int? = null
-        var offset = 0
-        val queryRess = mutableListOf<List<ResultRow>>()
-        while (rowsExtracted != 0) {
-            transaction {
+    fun selectByChunks(query: Query) = transaction {
+        kotlin.sequences.sequence {
+            val prepareSQL = query.prepareSQL(QueryBuilder(false))
+            val createTempTable = "CREATE TEMPORARY TABLE ${TempId.nameInDatabaseCase()} AS (" +
+                    "  SELECT prep.${TempId.id.name}" +
+                    "  FROM ($prepareSQL) AS prep" +
+                    "  ORDER BY prep.${TempId.id.name}" +
+                    ")"
+            exec(createTempTable)
+            var rowsExtracted: Int? = null
+            var offset = 0
+            val queryRess = mutableListOf<List<ResultRow>>()
+            while (rowsExtracted != 0) {
                 val messageIds = queriesManager.selectIds(offset).map { it[TempId.id] }
                 val queryRes = query.adjustWhere {
                     Op.build {
@@ -106,14 +111,13 @@ class TransactionsManager(val queriesManager: QueriesManager) {
                 }.toList()
                 rowsExtracted = queryRes.count()
                 offset += queryRes.count()
-                queryRess.add(queryRes)
+                yield(queryRes)
             }
+            exec("DROP TEMPORARY TABLE IF EXISTS ${TempId.nameInDatabaseCase()}")
         }
-        exec("DROP TEMPORARY TABLE IF EXISTS ${TempId.nameInDatabaseCase()}")
-        queryRess
     }
 
-    fun <T : Any> String.execAndMap(transform : (ResultSet) -> T) : List<T> {
+    fun <T : Any> String.execAndMap(transform: (ResultSet) -> T): List<T> {
         val result = arrayListOf<T>()
         TransactionManager.current().exec(this) { rs ->
             while (rs.next()) {

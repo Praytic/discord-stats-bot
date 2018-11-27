@@ -1,5 +1,6 @@
 package com.vchernogorov.discordbot
 
+import mu.KotlinLogging
 import net.dv8tion.jda.core.entities.Emote
 import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.Message
@@ -20,6 +21,8 @@ import java.time.OffsetDateTime
  * [queriesManager] is used for getting common [Query]s.
  */
 class TransactionsManager(val queriesManager: QueriesManager) {
+
+    private val logger = KotlinLogging.logger {}
 
     /**
      * Returns [Triple] of [User.getId], [Emote.getId] and [Message.getCreationTime]
@@ -49,15 +52,21 @@ class TransactionsManager(val queriesManager: QueriesManager) {
      */
     fun latestSavedMessages(channels: List<TextChannel>) = transaction {
         val map = mutableMapOf<String, String?>()
-        selectByChunks(queriesManager.selectUserMessagesByChannels(channels)).forEach {
-            val toMap = it.groupBy {
-                it[UserMessage.channelId]
-            }.map {
-                it.key to it.value.maxBy {
-                    OffsetDateTime.parse(it[UserMessage.creationDate])
-                }?.get(UserMessage.id)
-            }.toMap()
-            map.putAll(toMap)
+        if (queriesManager.chunksEnabled) {
+            this@TransactionsManager.logger.debug { "Messages will be fetched by chunks." }
+            selectByChunks(queriesManager.selectUserMessagesByChannels(channels)).forEach {
+                val toMap = it.groupBy {
+                    it[UserMessage.channelId]
+                }.map {
+                    it.key to it.value.maxBy {
+                        OffsetDateTime.parse(it[UserMessage.creationDate])
+                    }?.get(UserMessage.id)
+                }.toMap()
+                map.putAll(toMap)
+            }
+        } else {
+            this@TransactionsManager.logger.debug { "Chunked fetching is disabled." }
+            queriesManager.selectUserMessagesByChannels(channels)
         }
         map
     }

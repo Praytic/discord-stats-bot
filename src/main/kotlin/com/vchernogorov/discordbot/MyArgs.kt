@@ -34,8 +34,8 @@ class MyArgs(parser: ArgParser) {
             help = "if active, original request message will be removed"
     )
 
-    val fetchSize by parser.storing(
-            "--fetchSize",
+    val chunkSize by parser.storing(
+            "--chunkSize",
             help = "sets how much result rows one selection query should contain"
     ) { toInt() }.default(1000)
 
@@ -51,7 +51,7 @@ class MyArgs(parser: ArgParser) {
         logger.info("Backoff retry factor is set to $backoffRetryFactor.")
         logger.info("Print errors to discord is ${if (printErrorsToDiscord) "enabled" else "disabled"}.")
         logger.info("Remove original request message is ${if (removeOriginalRequest) "enabled" else "disabled"}.")
-        logger.info("Selections result set is limited by $fetchSize size per fetch.")
+        logger.info("Selections result set is limited by $chunkSize size.")
         logger.info("Fetching messages is ${if (fetchMessages) "enabled" else "disabled"}.")
     }
 }

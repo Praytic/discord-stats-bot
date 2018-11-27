@@ -4,18 +4,17 @@ import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.Member
 import net.dv8tion.jda.core.entities.TextChannel
 import org.jetbrains.exposed.sql.Query
-import org.jetbrains.exposed.sql.QueryBuilder
-import org.jetbrains.exposed.sql.SchemaUtils
-import org.jetbrains.exposed.sql.Transaction
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.selectAll
 
 /**
  * Queries manager contains different [Query]s for common use in the application.
- * [fetchSize] is used to limit big requests by selecting no more than [fetchSize] records in one go.
+ * [chunkSize] is used to limit big requests by selecting no more than [chunkSize] records in one go.
  */
-class QueriesManager(val fetchSize: Int) {
+class QueriesManager(val chunkSize: Int) {
+
+    val chunksEnabled = chunkSize > 0 && chunkSize != Int.MAX_VALUE
 
     /**
      * Selects [UserMessage]s sliced by [UserMessage.content], [UserMessage.creatorId], [UserMessage.creationDate]
@@ -51,5 +50,5 @@ class QueriesManager(val fetchSize: Int) {
                     }
 
     fun selectIds(offset: Int) =
-            TempId.slice(TempId.id).selectAll().orderBy(TempId.id).limit(fetchSize, offset)
+            TempId.slice(TempId.id).selectAll().orderBy(TempId.id).limit(chunkSize, offset)
 }

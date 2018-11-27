@@ -26,7 +26,7 @@ fun main(args: Array<String>) = ArgParser(args).parseInto(::MyArgs).run {
         }.handlers { it.get("health", HealthCheckHandler()) }
     }
 
-    val queriesManager = QueriesManager(fetchSize)
+    val queriesManager = QueriesManager(chunkSize)
     val transactionsManager = TransactionsManager(queriesManager)
     try {
         initDatabase(createSchemas, logger)

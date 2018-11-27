@@ -51,24 +51,11 @@ class TransactionsManager(val queriesManager: QueriesManager) {
      * [UserMessage.channelId]s should be contained in [channelIds] list.
      */
     fun latestSavedMessages(channels: List<TextChannel>) = transaction {
-        val map = mutableMapOf<String, String?>()
-        if (queriesManager.chunksEnabled) {
-            this@TransactionsManager.logger.debug { "Messages will be fetched by chunks." }
-            selectByChunks(queriesManager.selectUserMessagesByChannels(channels)).forEach {
-                val toMap = it.groupBy {
-                    it[UserMessage.channelId]
-                }.map {
-                    it.key to it.value.maxBy {
-                        OffsetDateTime.parse(it[UserMessage.creationDate])
-                    }?.get(UserMessage.id)
-                }.toMap()
-                map.putAll(toMap)
+        getSavedMessages(channels) {
+            it.minBy {
+                OffsetDateTime.parse(it[UserMessage.creationDate])
             }
-        } else {
-            this@TransactionsManager.logger.debug { "Chunked fetching is disabled." }
-            queriesManager.selectUserMessagesByChannels(channels)
         }
-        map
     }
 
     /**
@@ -77,13 +64,36 @@ class TransactionsManager(val queriesManager: QueriesManager) {
      * [UserMessage.channelId]s should be contained in [channelIds] list.
      */
     fun firstSavedMessages(channels: List<TextChannel>) = transaction {
-        queriesManager.selectUserMessagesByChannels(channels).groupBy {
-            it[UserMessage.channelId]
-        }.map {
-            it.key to it.value.minBy {
+        getSavedMessages(channels) {
+            it.maxBy {
                 OffsetDateTime.parse(it[UserMessage.creationDate])
-            }?.get(UserMessage.id)
-        }.toMap()
+            }
+        }
+    }
+
+    fun getSavedMessages(channels: List<TextChannel>, filter: (List<ResultRow>) -> ResultRow?) = transaction {
+        val map = mutableMapOf<String, String?>()
+        if (queriesManager.chunksEnabled) {
+            this@TransactionsManager.logger.debug { "Messages will be fetched by chunks." }
+            selectByChunks(queriesManager.selectUserMessagesByChannels(channels)).forEach {
+                val toMap = it.groupBy {
+                    it[UserMessage.channelId]
+                }.map { (channelId, resultRows) ->
+                    channelId to filter(resultRows)?.get(UserMessage.id)
+                }.toMap()
+                map.putAll(toMap)
+            }
+        } else {
+            this@TransactionsManager.logger.debug { "Chunked fetching is disabled." }
+            queriesManager.selectUserMessagesByChannels(channels).groupBy {
+                it[UserMessage.channelId]
+            }.map { (channelId, resultRows) ->
+                channelId to filter(resultRows)?.get(UserMessage.id)
+            }.forEach { (channelId, maxResultRow) ->
+                map[channelId] = maxResultRow
+            }
+        }
+        map
     }
 
     /**

@@ -26,11 +26,6 @@ class QueriesManager(val chunkSize: Int) {
      */
     fun selectUserMessagesByMembersAndChannels(guild: Guild, members: List<Member>, channels: List<TextChannel>): Query {
         return UserMessage
-                .slice(
-                        UserMessage.content,
-                        UserMessage.creatorId,
-                        UserMessage.creationDate
-                )
                 .select {
                     (UserMessage.creatorId.inList((if (members.isNotEmpty()) members else guild.members).map { it.user.id })) and
                             (UserMessage.channelId.inList((if (channels.isNotEmpty()) channels else guild.textChannels).map { it.id }))

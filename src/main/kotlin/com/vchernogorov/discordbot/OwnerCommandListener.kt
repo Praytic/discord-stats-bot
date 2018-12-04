@@ -42,7 +42,9 @@ class OwnerCommandListener(val printErrorsToDiscord: Boolean,
         val params = commands.drop(1).toTypedArray()
         val command = commands[0]
         val mode: Mode = try {
-            Mode.valueOf(command)
+            val mode = Mode.valueOf(command)
+            logger.info { "Command [$command] with params [${params.joinToString(" ")}] was called by [${event.author}]." }
+            mode
         } catch (e: IllegalArgumentException) {
             Mode.UNDEFINED
         }

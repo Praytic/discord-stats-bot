@@ -3,17 +3,18 @@ package com.vchernogorov.discordbot.task
 import com.vchernogorov.discordbot.TransactionsManager
 import com.vchernogorov.discordbot.UserStatsArgs
 import com.vchernogorov.discordbot.send
+import mu.KotlinLogging
 import net.dv8tion.jda.core.JDA
 import net.dv8tion.jda.core.MessageBuilder
 import net.dv8tion.jda.core.entities.Emote
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import org.joda.time.DateTime
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.OffsetDateTime
+import java.time.Instant
 import java.time.temporal.ChronoUnit
 
 class GuildAverageUsageEmoteStatsTask(val transactionsManager: TransactionsManager) : MessagesStatsTask() {
+
+    private val logger = KotlinLogging.logger {}
 
     override fun execute(event: MessageReceivedEvent, args: UserStatsArgs) {
         val emotesUsed = transactionsManager.selectEmotesByCreatorsAndCreationDate(event.guild, args)
@@ -49,18 +50,26 @@ class GuildAverageUsageEmoteStatsTask(val transactionsManager: TransactionsManag
         }.toMap()
     }
 
-    private fun sortEmotesByUsageRate(jda: JDA,
-                                      emotesUsed: List<Triple<String, String, DateTime>>,
-                                      minCreationDateByEmote: Map<String, DateTime?>): List<Triple<Emote, Int, Double>> {
+    private fun sortEmotesByUsageRate(
+            jda: JDA,
+            emotesUsed: List<Triple<String, String, DateTime>>,
+            minCreationDateByEmote: Map<String, DateTime?>): List<Triple<Emote, Int, Double>> {
         return emotesUsed.groupingBy {
             it.second
         }.eachCount().map { (emote, count) ->
-            val daysLive = ChronoUnit.DAYS.between(LocalDateTime.parse(minCreationDateByEmote[emote]?.toString()), LocalDate.now())
+            val epochCreationTime = minCreationDateByEmote[emote]?.toInstant()?.millis
+            val firstTimePosted = if (epochCreationTime != null) {
+                Instant.ofEpochMilli(epochCreationTime)
+            } else {
+                logger.warn { "Emote $emote doesn't have creation time." }
+                Instant.now()
+            }
+            val daysLive = ChronoUnit.DAYS.between(firstTimePosted, Instant.now())
             Triple(emote, count, count * 1.0 / daysLive)
         }.map { (emote, count, usageRate) ->
             Triple(jda.getEmoteById(emote), count, usageRate)
-        }.filter { (emote) ->
-            emote != null
+        }.filter { (emote, _, usageRate) ->
+            emote != null && usageRate.isFinite()
         }.sortedByDescending { (_, _, usageRate) ->
             usageRate
         }

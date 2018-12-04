@@ -26,7 +26,7 @@ object UserMessage : Table() {
     val channelId = varchar("channel_id", 20)
     val content = varchar("content", 2000, collate = "utf8_general_ci")
     val creatorId = varchar("creator_id", 20).nullable()
-    val creationDate = varchar("creation_date", 26)
+    val creationDate = datetime("creation_date")
 }
 
 enum class Mode {

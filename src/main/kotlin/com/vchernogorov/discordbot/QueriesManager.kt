@@ -4,7 +4,10 @@ import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.Member
 import net.dv8tion.jda.core.entities.TextChannel
 import org.jetbrains.exposed.sql.Query
+import org.jetbrains.exposed.sql.SortOrder
+import org.jetbrains.exposed.sql.alias
 import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.max
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.selectAll
 
@@ -48,6 +51,25 @@ class QueriesManager(val chunkSize: Int) {
                     .select {
                         UserMessage.channelId.inList(channels.map { it.id })
                     }
+
+    fun findMessageIdByMinCreationDate(channel: TextChannel) =
+            UserMessage
+                    .slice(UserMessage.id)
+                    .select {
+                        UserMessage.channelId.eq(channel.id)
+                    }
+                    .orderBy(UserMessage.creationDate, true)
+                    .limit(1)
+
+
+    fun findMessageIdByMaxCreationDate(channel: TextChannel) =
+            UserMessage
+                    .slice(UserMessage.id)
+                    .select {
+                        UserMessage.channelId.eq(channel.id)
+                    }
+                    .orderBy(UserMessage.creationDate, false)
+                    .limit(1)
 
     fun selectIds(offset: Int) =
             TempId.slice(TempId.id).selectAll().orderBy(TempId.id).limit(chunkSize, offset)

@@ -110,6 +110,36 @@ class FetchMessagesListener(val fetchDelayMillis: Long,
         }
     }
 
+    private suspend fun uploadMessages(
+            channel: TextChannel,
+            messagesByChannel: MutableMap<TextChannel, String?>) = coroutineScope {
+        var latestSavedMessageId = messagesByChannel[channel]
+        val latestMessageId = channel.getLatestMessageIdSafe()
+        async {
+            var newMessagesUploaded = 0
+            while (true) {
+                val newMessages = channel.getHistoryAfter(
+                        if (latestMessageId == null || latestMessageId == latestSavedMessageId) {
+                            break
+                        } else if (latestSavedMessageId == null) {
+                            latestMessageId
+                        } else {
+                            latestSavedMessageId
+                        }, 100).complete().retrievedHistory
+                if (newMessages.isNotEmpty()) {
+                    transactionsManager.uploadMessages(newMessages)
+                    latestSavedMessageId = newMessages.maxBy { it.creationTime }?.id
+                    newMessagesUploaded += newMessages.size
+                } else {
+                    break
+                }
+            }
+            messagesByChannel[channel] = latestSavedMessageId
+            newMessagesUploaded
+        }
+    }
+
+
     private suspend fun uploadOldMessages(
             channel: TextChannel,
             messagesByChannel: MutableMap<TextChannel, String?>) = coroutineScope {
@@ -127,7 +157,7 @@ class FetchMessagesListener(val fetchDelayMillis: Long,
                     break
                 }
                 if (newMessages.isNotEmpty()) {
-                    transactionsManager.uploadMessages(newMessages, false)
+                    transactionsManager.uploadMessages(newMessages)
                     firstSavedMessageId = newMessages.minBy { it.creationTime }?.id
                     newMessagesUploaded += newMessages.size
                 }

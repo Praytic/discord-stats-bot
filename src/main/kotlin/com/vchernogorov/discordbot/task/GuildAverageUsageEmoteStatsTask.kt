@@ -7,7 +7,9 @@ import net.dv8tion.jda.core.JDA
 import net.dv8tion.jda.core.MessageBuilder
 import net.dv8tion.jda.core.entities.Emote
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
+import org.joda.time.DateTime
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.OffsetDateTime
 import java.time.temporal.ChronoUnit
 
@@ -35,7 +37,7 @@ class GuildAverageUsageEmoteStatsTask(val transactionsManager: TransactionsManag
         return messageBuilder
     }
 
-    private fun minCreationDateByEmote(jda: JDA, emotesUsed: List<Triple<String, String, OffsetDateTime>>): Map<String, LocalDate?> {
+    private fun minCreationDateByEmote(jda: JDA, emotesUsed: List<Triple<String, String, DateTime>>): Map<String, DateTime?> {
         return emotesUsed.distinctBy { (_, emote, _) ->
             emote
         }.map { (_, emote, _) ->
@@ -43,17 +45,17 @@ class GuildAverageUsageEmoteStatsTask(val transactionsManager: TransactionsManag
                 it.second == emote
             }.map { (_, _, creationDate) ->
                 creationDate
-            }.min()?.toLocalDate()
+            }.min()
         }.toMap()
     }
 
     private fun sortEmotesByUsageRate(jda: JDA,
-                                      emotesUsed: List<Triple<String, String, OffsetDateTime>>,
-                                      minCreationDateByEmote: Map<String, LocalDate?>): List<Triple<Emote, Int, Double>> {
+                                      emotesUsed: List<Triple<String, String, DateTime>>,
+                                      minCreationDateByEmote: Map<String, DateTime?>): List<Triple<Emote, Int, Double>> {
         return emotesUsed.groupingBy {
             it.second
         }.eachCount().map { (emote, count) ->
-            val daysLive = ChronoUnit.DAYS.between(minCreationDateByEmote[emote], LocalDate.now())
+            val daysLive = ChronoUnit.DAYS.between(LocalDateTime.parse(minCreationDateByEmote[emote]?.toString()), LocalDate.now())
             Triple(emote, count, count * 1.0 / daysLive)
         }.map { (emote, count, usageRate) ->
             Triple(jda.getEmoteById(emote), count, usageRate)

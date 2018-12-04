@@ -13,8 +13,8 @@ import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.batchInsert
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transaction
+import org.joda.time.DateTime
 import java.sql.ResultSet
-import java.time.OffsetDateTime
 
 /**
  * Transaction manager contains different transactions for common use in the application.
@@ -35,7 +35,7 @@ class TransactionsManager(val queriesManager: QueriesManager) {
             Triple(
                     it[UserMessage.creatorId],
                     emoteRegex.findAll(it[UserMessage.content], 0).toList(),
-                    OffsetDateTime.parse(it[UserMessage.creationDate])
+                    it[UserMessage.creationDate]
             )
         }.filter { (creatorId, emotes, _) ->
             emotes.isNotEmpty() && creatorId != null
@@ -51,11 +51,10 @@ class TransactionsManager(val queriesManager: QueriesManager) {
      * [UserMessage.channelId]s should be contained in [channelIds] list.
      */
     fun latestSavedMessages(channels: List<TextChannel>) = transaction {
-        getSavedMessages(channels) {
-            it.minBy {
-                OffsetDateTime.parse(it[UserMessage.creationDate])
-            }
-        }
+        channels.map {
+            val messageId = queriesManager.findMessageIdByMaxCreationDate(it).singleOrNull()?.get(UserMessage.id)
+            it.id to messageId
+        }.toMap()
     }
 
     /**
@@ -64,37 +63,36 @@ class TransactionsManager(val queriesManager: QueriesManager) {
      * [UserMessage.channelId]s should be contained in [channelIds] list.
      */
     fun firstSavedMessages(channels: List<TextChannel>) = transaction {
-        getSavedMessages(channels) {
-            it.maxBy {
-                OffsetDateTime.parse(it[UserMessage.creationDate])
-            }
-        }
+        channels.map {
+            val messageId = queriesManager.findMessageIdByMinCreationDate(it).singleOrNull()?.get(UserMessage.id)
+            it.id to messageId
+        }.toMap()
     }
 
-    fun getSavedMessages(channels: List<TextChannel>, filter: (List<ResultRow>) -> ResultRow?) = transaction {
-        val map = mutableMapOf<String, String?>()
-        if (queriesManager.chunksEnabled) {
-            this@TransactionsManager.logger.debug { "Messages will be fetched by chunks." }
-            selectByChunks(queriesManager.selectUserMessagesByChannels(channels)).forEach {
-                val toMap = it.groupBy {
-                    it[UserMessage.channelId]
-                }.map { (channelId, resultRows) ->
-                    channelId to filter(resultRows)?.get(UserMessage.id)
-                }.toMap()
-                map.putAll(toMap)
-            }
-        } else {
-            this@TransactionsManager.logger.debug { "Chunked fetching is disabled." }
-            queriesManager.selectUserMessagesByChannels(channels).groupBy {
-                it[UserMessage.channelId]
-            }.map { (channelId, resultRows) ->
-                channelId to filter(resultRows)?.get(UserMessage.id)
-            }.forEach { (channelId, maxResultRow) ->
-                map[channelId] = maxResultRow
-            }
-        }
-        map
-    }
+//    fun getSavedMessages(channels: List<TextChannel>, filter: (List<ResultRow>) -> ResultRow?) = transaction {
+//        val map = mutableMapOf<String, String?>()
+//        if (queriesManager.chunksEnabled) {
+//            this@TransactionsManager.logger.debug { "Messages will be fetched by chunks." }
+//            selectByChunks(queriesManager.selectUserMessagesByChannels(channels)).forEach {
+//                val toMap = it.groupBy {
+//                    it[UserMessage.channelId]
+//                }.map { (channelId, resultRows) ->
+//                    channelId to filter(resultRows)?.get(UserMessage.id)
+//                }.toMap()
+//                map.putAll(toMap)
+//            }
+//        } else {
+//            this@TransactionsManager.logger.debug { "Chunked fetching is disabled." }
+//            queriesManager.selectUserMessagesByChannels(channels).groupBy {
+//                it[UserMessage.channelId]
+//            }.map { (channelId, resultRows) ->
+//                channelId to filter(resultRows)?.get(UserMessage.id)
+//            }.forEach { (channelId, maxResultRow) ->
+//                map[channelId] = maxResultRow
+//            }
+//        }
+//        map
+//    }
 
     /**
      * Uploads a collections of [Message]s into [UserMessage] table.
@@ -103,7 +101,7 @@ class TransactionsManager(val queriesManager: QueriesManager) {
         UserMessage.batchInsert(elements, ignore = ignoreExistingRecords) {
             this[UserMessage.id] = it.id
             this[UserMessage.channelId] = it.channel.id
-            this[UserMessage.creationDate] = it.creationTime.toString()
+            this[UserMessage.creationDate] = DateTime(it.creationTime.toInstant().toEpochMilli())
             this[UserMessage.creatorId] = it.author.id
             this[UserMessage.content] = it.contentRaw
         }

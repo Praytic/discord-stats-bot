@@ -60,13 +60,7 @@ class OwnerCommandListener(val printErrorsToDiscord: Boolean,
             val writer = OutputStreamWriter(baos)
             se.printUserMessage(writer, null, 80)
             writer.flush()
-            val splittedHelpMessage = String(baos.toByteArray(), StandardCharsets.UTF_8).split("\n")
-            val helpMessage = splittedHelpMessage.reduceUntil({ acc, s -> acc.length + s.length > 2000 }) { acc, s ->
-                acc + "\n" + s
-            }
-            helpMessage.forEach {
-                event.send("```$it```")
-            }
+            event.send(String(baos.toByteArray(), StandardCharsets.UTF_8), true)
         } catch (e: Exception) {
             if (printErrorsToDiscord) {
                 if (PermissionUtil.checkPermission(event.textChannel, event.guild.selfMember, Permission.MESSAGE_WRITE)) {

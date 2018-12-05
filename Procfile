@@ -1,1 +1,1 @@
-web: build/install/discord-stats-bot/bin/discord-stats-bot --printErrorsToDiscord --fetchMessages
+web: build/install/discord-stats-bot/bin/discord-stats-bot --printErrorsToDiscord --fetchMessages --chunkSize=10000

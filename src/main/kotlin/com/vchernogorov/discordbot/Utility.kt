@@ -13,11 +13,22 @@ private val logger = KotlinLogging.logger("Utility")
 inline fun <reified T> Gson.fromJson(json: String) =
         this.fromJson<T>(json, object : TypeToken<T>() {}.type)
 
-fun MessageReceivedEvent.send(message: String) =
-        textChannel.sendMessage(net.dv8tion.jda.core.MessageBuilder().append(message).build()).complete()
+fun MessageReceivedEvent.send(message: String, useWrap: Boolean = false) {
+    send(MessageBuilder().append(message), useWrap)
+}
 
-fun MessageReceivedEvent.send(messageBuilder: MessageBuilder) =
-        textChannel.sendMessage(messageBuilder.build()).complete()
+fun MessageReceivedEvent.send(messageBuilder: MessageBuilder, useWrap: Boolean = false) {
+    val splittedMessage = messageBuilder.stringBuilder.split("\n")
+    val maxLength = if (useWrap) 1994 else 2000
+    val boundedMessages = splittedMessage.reduceUntil({ acc, s -> acc.length + s.length > maxLength }) { acc, s ->
+        acc + "\n" + s
+    }
+    boundedMessages.forEach {
+        if (useWrap) textChannel.sendMessage(MessageBuilder().append("```$it```").build()).complete()
+        else textChannel.sendMessage(MessageBuilder().append(it).build()).complete()
+    }
+}
+
 
 fun MessageChannel.getLatestMessageIdSafe(): String? {
     return try {

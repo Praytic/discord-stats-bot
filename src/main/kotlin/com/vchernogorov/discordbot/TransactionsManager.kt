@@ -30,15 +30,10 @@ class TransactionsManager(val queriesManager: QueriesManager) {
      * Otherwise results are filtered by [Guild.getMembers] and [Guild.getTextChannels].
      */
     fun selectEmotesByCreatorsAndCreationDate(guild: Guild, args: UserStatsArgs) = transaction {
-        val botIds = guild.members.filter {
-            it.user.isBot
-        }.map {
-            it.user.id
-        }
+        val botIds = guild.members.filter { it.user.isBot }.map { it.user.id }
         val emoteRegex = "<:(.*?):[0-9]{18}>".toRegex()
-        val emotesList = mutableListOf<Triple<String, String, DateTime>>()
-        selectByChunks(queriesManager.selectUserMessagesByMembersAndChannels(guild, args.members, args.channels)).forEach {
-            val emotes = it.map {
+        val emotesList = selectByChunks(queriesManager.selectUserMessagesByMembersAndChannels(guild, args.members, args.channels)) {
+            it.map {
                 Triple(
                         it[UserMessage.creatorId],
                         emoteRegex.findAll(it[UserMessage.content], 0).toList(),
@@ -50,8 +45,7 @@ class TransactionsManager(val queriesManager: QueriesManager) {
                 val emoteIds = emotes.map { it.value.dropLast(1).takeLast(18) }
                 emoteIds.map { Triple(creatorId!!, it, creationDate) }
             }.flatten()
-            emotesList.addAll(emotes)
-        }
+        }.flatten()
         emotesList
     }
 
@@ -117,34 +111,33 @@ class TransactionsManager(val queriesManager: QueriesManager) {
         }
     }
 
-    fun selectByChunks(query: Query) = transaction {
-        kotlin.sequences.sequence {
-            val prepareSQL = query.prepareSQL(QueryBuilder(false))
-            try {
-                val createTempTable = "CREATE TEMPORARY TABLE ${TempId.nameInDatabaseCase()} AS (" +
-                        "  SELECT prep.${TempId.id.name}" +
-                        "  FROM ($prepareSQL) AS prep" +
-                        "  ORDER BY prep.${TempId.id.name}" +
-                        ")"
-                exec(createTempTable)
-                var rowsExtracted: Int? = null
-                var offset = 0
-                val queryRess = mutableListOf<List<ResultRow>>()
-                while (rowsExtracted != 0) {
-                    val messageIds = queriesManager.selectIds(offset).map { it[TempId.id] }
-                    val queryRes = query.adjustWhere {
-                        Op.build {
-                            UserMessage.id.inList(messageIds)
-                        }
-                    }.toList()
-                    rowsExtracted = queryRes.count()
-                    offset += queryRes.count()
-                    yield(queryRes)
-                }
-            } finally {
-                exec("DROP TEMPORARY TABLE IF EXISTS ${TempId.nameInDatabaseCase()}")
+    fun <T> selectByChunks(query: Query, processor: (List<ResultRow>) -> T): List<T> = transaction {
+        val prepareSQL = query.prepareSQL(QueryBuilder(false))
+        val processedResult = mutableListOf<T>()
+        try {
+            val createTempTable = "CREATE TEMPORARY TABLE ${TempId.nameInDatabaseCase()} AS (" +
+                    "  SELECT prep.${TempId.id.name}" +
+                    "  FROM ($prepareSQL) AS prep" +
+                    "  ORDER BY prep.${TempId.id.name}" +
+                    ")"
+            exec(createTempTable)
+            var rowsExtracted: Int? = null
+            var offset = 0
+            while (rowsExtracted != 0) {
+                val messageIds = queriesManager.selectIds(offset).map { it[TempId.id] }
+                val queryRes = query.adjustWhere {
+                    Op.build {
+                        UserMessage.id.inList(messageIds)
+                    }
+                }.toList()
+                rowsExtracted = queryRes.count()
+                offset += queryRes.count()
+                processedResult.add(processor(queryRes))
             }
+        } finally {
+            exec("DROP TEMPORARY TABLE IF EXISTS ${TempId.nameInDatabaseCase()}")
         }
+        processedResult
     }
 
     fun <T : Any> String.execAndMap(transform: (ResultSet) -> T): List<T> {

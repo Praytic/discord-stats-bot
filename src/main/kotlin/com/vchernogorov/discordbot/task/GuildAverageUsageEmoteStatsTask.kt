@@ -17,10 +17,18 @@ class GuildAverageUsageEmoteStatsTask(val transactionsManager: TransactionsManag
     private val logger = KotlinLogging.logger {}
 
     override fun execute(event: MessageReceivedEvent, args: UserStatsArgs) {
+        logger.debug { "Selecting emotes, creators and creation dates." }
         val emotesUsed = transactionsManager.selectEmotesByCreatorsAndCreationDate(event.guild, args)
+
+        logger.debug { "Gathering the first creation date for each emote." }
         val minCreationDateByEmote = minCreationDateByEmote(event.jda, emotesUsed)
+
+        logger.debug { "Sorting emotes by usage rate." }
         val sortedEmotesUsed = sortEmotesByUsageRate(event.jda, emotesUsed, minCreationDateByEmote)
+
+        logger.debug { "Generating discord message with the results." }
         val messageBuilder = generateResponseMessage(sortedEmotesUsed, args)
+
         event.send(messageBuilder)
     }
 

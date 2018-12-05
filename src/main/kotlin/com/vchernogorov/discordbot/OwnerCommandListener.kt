@@ -36,8 +36,6 @@ class OwnerCommandListener(val printErrorsToDiscord: Boolean,
             return
         }
 
-        logger.debug { "New message request: ${event.message.contentRaw}" }
-
         val commands = event.message.contentRaw.split(" ")
         val params = commands.drop(1).toTypedArray()
         val command = commands[0]

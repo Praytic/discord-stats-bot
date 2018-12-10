@@ -1,5 +1,7 @@
 package com.vchernogorov.discordbot
 
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import mu.KotlinLogging
 import net.dv8tion.jda.core.entities.Emote
 import net.dv8tion.jda.core.entities.Guild
@@ -14,14 +16,24 @@ import org.jetbrains.exposed.sql.batchInsert
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.joda.time.DateTime
+import redis.clients.jedis.JedisPool
 import java.sql.ResultSet
+import java.util.*
+import org.joda.time.format.DateTimeFormat
+
+
+
+
 
 /**
  * Transaction manager contains different transactions for common use in the application.
  * [queriesManager] is used for getting common [Query]s.
  */
-class TransactionsManager(val queriesManager: QueriesManager) {
+class TransactionsManager(val queriesManager: QueriesManager,
+                          val jedisPool: JedisPool,
+                          val gson: Gson) {
 
+    private val dateformatter = DateTimeFormat.forPattern("yyyy-MM-dd")
     private val logger = KotlinLogging.logger {}
 
     /**
@@ -30,6 +42,24 @@ class TransactionsManager(val queriesManager: QueriesManager) {
      * Otherwise results are filtered by [Guild.getMembers] and [Guild.getTextChannels].
      */
     fun selectEmotesByCreatorsAndCreationDate(guild: Guild, args: UserStatsArgs) = transaction {
+        jedisPool.resource.use {
+            val membersHash = Math.abs(Arrays.hashCode(
+                    ((if (args.members.isNotEmpty()) args.members else guild.members).map { it.user.id }).toTypedArray()
+            ))
+            val channelsHash = Math.abs(Arrays.hashCode(
+                    ((if (args.channels.isNotEmpty()) args.channels else guild.channels).map { it.id }).toTypedArray()
+            ))
+            val key = "selectEmotesByCreatorsAndCreationDate/${guild.id}/$channelsHash/$membersHash"
+            val value = it.get(key)
+            if (value != null) {
+                val type = object : TypeToken<List<Triple<String, String, String>>>() {}.type
+                val fromJson = gson.fromJson<List<Triple<String, String, String>>>(value, type)
+                return@transaction fromJson.map {
+                    Triple(it.first, it.second, dateformatter.parseDateTime(it.third))
+                }
+            }
+        }
+
         val botIds = guild.members.filter { it.user.isBot }.map { it.user.id }
         val emoteRegex = "<:(.*?):[0-9]{18}>".toRegex()
         val emotesList = selectByChunks(queriesManager.selectUserMessagesByMembersAndChannels(guild, args.members, args.channels)) {
@@ -46,6 +76,21 @@ class TransactionsManager(val queriesManager: QueriesManager) {
                 emoteIds.map { Triple(creatorId!!, it, creationDate) }
             }.flatten()
         }.flatten()
+
+        jedisPool.resource.use {
+            val membersHash = Math.abs(Arrays.hashCode(
+                    ((if (args.members.isNotEmpty()) args.members else guild.members).map { it.user.id }).toTypedArray()
+            ))
+            val channelsHash = Math.abs(Arrays.hashCode(
+                    ((if (args.channels.isNotEmpty()) args.channels else guild.channels).map { it.id }).toTypedArray()
+            ))
+            val key = "selectEmotesByCreatorsAndCreationDate/${guild.id}/$channelsHash/$membersHash"
+            val value = emotesList.map {
+                Triple(it.first, it.second, it.third.toString(dateformatter))
+            }
+            it.set(key, gson.toJson(value))
+            it.expire(key, 60*60*24)
+        }
         emotesList
     }
 

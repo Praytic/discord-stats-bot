@@ -14,6 +14,8 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import ratpack.health.HealthCheckHandler
 import ratpack.server.BaseDir
 import ratpack.server.RatpackServer.start
+import redis.clients.jedis.JedisPool
+import redis.clients.jedis.JedisPoolConfig
 import java.net.URI
 
 fun main(args: Array<String>) = ArgParser(args).parseInto(::MyArgs).run {
@@ -26,8 +28,9 @@ fun main(args: Array<String>) = ArgParser(args).parseInto(::MyArgs).run {
         }.handlers { it.get("health", HealthCheckHandler()) }
     }
 
+    val jedisPool = JedisPool(JedisPoolConfig(), System.getenv("REDIS_URL"))
     val queriesManager = QueriesManager(chunkSize)
-    val transactionsManager = TransactionsManager(queriesManager)
+    val transactionsManager = TransactionsManager(queriesManager, jedisPool, gson)
     try {
         initDatabase(createSchemas, logger)
         val listeners = mutableListOf<ListenerAdapter>(OwnerCommandListener(printErrorsToDiscord, removeOriginalRequest, transactionsManager))
@@ -38,6 +41,7 @@ fun main(args: Array<String>) = ArgParser(args).parseInto(::MyArgs).run {
     } catch (e: Throwable) {
         logger.error(e) { "Stopping app because of the initialization error." }
         server.stop()
+        jedisPool.close()
         System.exit(-1)
     }
     Unit

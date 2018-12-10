@@ -21,16 +21,12 @@ import java.sql.ResultSet
 import java.util.*
 import org.joda.time.format.DateTimeFormat
 
-
-
-
-
 /**
  * Transaction manager contains different transactions for common use in the application.
  * [queriesManager] is used for getting common [Query]s.
  */
 class TransactionsManager(val queriesManager: QueriesManager,
-                          val jedisPool: JedisPool,
+                          val cacheManager: CacheManager,
                           val gson: Gson) {
 
     private val dateformatter = DateTimeFormat.forPattern("yyyy-MM-dd")
@@ -42,23 +38,14 @@ class TransactionsManager(val queriesManager: QueriesManager,
      * Otherwise results are filtered by [Guild.getMembers] and [Guild.getTextChannels].
      */
     fun selectEmotesByCreatorsAndCreationDate(guild: Guild, args: UserStatsArgs) = transaction {
-        jedisPool.resource.use {
-            val membersHash = Math.abs(Arrays.hashCode(
-                    ((if (args.members.isNotEmpty()) args.members else guild.members).map { it.user.id }).toTypedArray()
-            ))
-            val channelsHash = Math.abs(Arrays.hashCode(
-                    ((if (args.channels.isNotEmpty()) args.channels else guild.channels).map { it.id }).toTypedArray()
-            ))
-            val key = "selectEmotesByCreatorsAndCreationDate/${guild.id}/$channelsHash/$membersHash"
-            val value = it.get(key)
-            if (value != null) {
-                val type = object : TypeToken<List<Triple<String, String, String>>>() {}.type
-                val fromJson = gson.fromJson<List<Triple<String, String, String>>>(value, type)
-                return@transaction fromJson.map {
-                    Triple(it.first, it.second, dateformatter.parseDateTime(it.third))
-                }
+        val cachedResult = cacheManager.getFromCache("selectEmotesByCreatorsAndCreationDate", guild, args) { value ->
+            val type = object : TypeToken<List<Triple<String, String, String>>>() {}.type
+            val fromJson = gson.fromJson<List<Triple<String, String, String>>>(value, type)
+            fromJson.map {
+                Triple(it.first, it.second, dateformatter.parseDateTime(it.third))
             }
         }
+        if (cachedResult != null) return@transaction cachedResult
 
         val botIds = guild.members.filter { it.user.isBot }.map { it.user.id }
         val emoteRegex = "<:(.*?):[0-9]{18}>".toRegex()
@@ -77,19 +64,11 @@ class TransactionsManager(val queriesManager: QueriesManager,
             }.flatten()
         }.flatten()
 
-        jedisPool.resource.use {
-            val membersHash = Math.abs(Arrays.hashCode(
-                    ((if (args.members.isNotEmpty()) args.members else guild.members).map { it.user.id }).toTypedArray()
-            ))
-            val channelsHash = Math.abs(Arrays.hashCode(
-                    ((if (args.channels.isNotEmpty()) args.channels else guild.channels).map { it.id }).toTypedArray()
-            ))
-            val key = "selectEmotesByCreatorsAndCreationDate/${guild.id}/$channelsHash/$membersHash"
-            val value = emotesList.map {
+        cacheManager.saveToCache("selectEmotesByCreatorsAndCreationDate", guild, args, emotesList) {
+            val value = it.map {
                 Triple(it.first, it.second, it.third.toString(dateformatter))
             }
-            it.set(key, gson.toJson(value))
-            it.expire(key, 60*60*24)
+            gson.toJson(value)
         }
         emotesList
     }

@@ -28,7 +28,12 @@ fun main(args: Array<String>) = ArgParser(args).parseInto(::MyArgs).run {
         }.handlers { it.get("health", HealthCheckHandler()) }
     }
 
-    val jedisPool = JedisPool(JedisPoolConfig(), System.getenv("REDIS_URL"))
+    val jedisPool = if (System.getenv("REDIS_URL") != null) {
+        JedisPool(System.getenv("REDIS_URL"))
+    } else {
+        JedisPool()
+    }
+
     val queriesManager = QueriesManager(chunkSize)
     val transactionsManager = TransactionsManager(queriesManager, jedisPool, gson)
     try {

@@ -44,6 +44,11 @@ class MyArgs(parser: ArgParser) {
             help = "enables loading new and old messages from discord channels to the database"
     )
 
+    val cacheExpiration by parser.storing(
+            "--cacheExpiration",
+            help = "sets expiration time for any cached value"
+    )
+
     fun printArgs(logger: Logger) {
         logger.info("Fetch delay is set to ${fetchDelay / 1000.0} seconds.")
         logger.info("Create schemas on startup is ${if (createSchemas) "enabled" else "disabled"}.")

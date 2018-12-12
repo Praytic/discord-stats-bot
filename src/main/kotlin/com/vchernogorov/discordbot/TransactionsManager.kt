@@ -26,25 +26,26 @@ import org.joda.time.format.DateTimeFormat
  * [queriesManager] is used for getting common [Query]s.
  */
 class TransactionsManager(val queriesManager: QueriesManager,
-                          val cacheManager: CacheManager,
                           val gson: Gson) {
 
     private val dateformatter = DateTimeFormat.forPattern("yyyy-MM-dd")
     private val logger = KotlinLogging.logger {}
+
+    lateinit var cacheManager: CacheManager
 
     /**
      * Returns [Triple] of [User.getId], [Emote.getId] and [Message.getCreationTime]
      * Results are filtered by [UserStatsArgs.members] and [UserStatsArgs.channels] if they are not empty.
      * Otherwise results are filtered by [Guild.getMembers] and [Guild.getTextChannels].
      */
-    fun selectEmotesByCreatorsAndCreationDate(guild: Guild, args: UserStatsArgs) = transaction {
-        val cachedResult = cacheManager.getFromCache("selectEmotesByCreatorsAndCreationDate", guild, args) { value ->
+    fun selectEmotesByCreatorsAndCreationDate(guild: Guild, args: UserStatsArgs): List<Triple<String, String, DateTime>> = transaction {
+        val cachedResult = if (::cacheManager.isInitialized) cacheManager.getFromCache("selectEmotesByCreatorsAndCreationDate", guild, args) { value ->
             val type = object : TypeToken<List<Triple<String, String, String>>>() {}.type
             val fromJson = gson.fromJson<List<Triple<String, String, String>>>(value, type)
             fromJson.map {
                 Triple(it.first, it.second, dateformatter.parseDateTime(it.third))
             }
-        }
+        } else null
         if (cachedResult != null) return@transaction cachedResult
 
         val botIds = guild.members.filter { it.user.isBot }.map { it.user.id }
@@ -63,13 +64,6 @@ class TransactionsManager(val queriesManager: QueriesManager,
                 emoteIds.map { Triple(creatorId!!, it, creationDate) }
             }.flatten()
         }.flatten()
-
-        cacheManager.saveToCache("selectEmotesByCreatorsAndCreationDate", guild, args, emotesList) {
-            val value = it.map {
-                Triple(it.first, it.second, it.third.toString(dateformatter))
-            }
-            gson.toJson(value)
-        }
         emotesList
     }
 

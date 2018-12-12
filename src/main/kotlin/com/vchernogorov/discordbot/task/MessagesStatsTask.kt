@@ -8,6 +8,6 @@ abstract class MessagesStatsTask : MessageTask {
     abstract fun execute(event: MessageReceivedEvent, args: UserStatsArgs)
 
     override fun execute(event: MessageReceivedEvent, vararg params: String) {
-        execute(event, ArgParser(params).parseInto { UserStatsArgs(it, event.textChannel) })
+        execute(event, ArgParser(params).parseInto { UserStatsArgs(it, event.guild) })
     }
 }

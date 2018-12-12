@@ -34,15 +34,20 @@ fun main(args: Array<String>) = ArgParser(args).parseInto(::MyArgs).run {
         JedisPool()
     }
 
-    val queriesManager = QueriesManager(chunkSize)
-    val transactionsManager = TransactionsManager(queriesManager, jedisPool, gson)
     try {
-        initDatabase(createSchemas, logger)
+        val queriesManager = QueriesManager(chunkSize)
+        val transactionsManager = TransactionsManager(queriesManager, gson)
         val listeners = mutableListOf<ListenerAdapter>(OwnerCommandListener(printErrorsToDiscord, removeOriginalRequest, transactionsManager))
         if (fetchMessages) {
             listeners.add(FetchMessagesListener(fetchDelay, backoffRetryDelay, backoffRetryFactor, transactionsManager))
         }
-        initJda(listeners)
+        val jda = initJda(listeners)
+        val cacheManager = CacheManager(jedisPool)
+        transactionsManager.cacheManager = cacheManager
+        val cacheScheduler = CacheScheduler(cacheManager, transactionsManager, jda, gson)
+
+        initDatabase(createSchemas, logger)
+        cacheScheduler.start()
     } catch (e: Throwable) {
         logger.error(e) { "Stopping app because of the initialization error." }
         server.stop()

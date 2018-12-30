@@ -1,9 +1,7 @@
 package com.vchernogorov.discordbot.task
 
-import com.google.gson.JsonElement
-import com.google.gson.reflect.TypeToken
-import com.vchernogorov.discordbot.TransactionsManager
-import com.vchernogorov.discordbot.UserStatsArgs
+import com.vchernogorov.discordbot.manager.TransactionsManager
+import com.vchernogorov.discordbot.args.UserStatsArgs
 import com.vchernogorov.discordbot.send
 import mu.KotlinLogging
 import net.dv8tion.jda.core.JDA
@@ -11,10 +9,8 @@ import net.dv8tion.jda.core.MessageBuilder
 import net.dv8tion.jda.core.entities.Emote
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import org.joda.time.DateTime
-import redis.clients.jedis.JedisPool
 import java.time.Instant
 import java.time.temporal.ChronoUnit
-import java.util.*
 
 class GuildAverageUsageEmoteStatsTask(val transactionsManager: TransactionsManager) : MessagesStatsTask() {
 

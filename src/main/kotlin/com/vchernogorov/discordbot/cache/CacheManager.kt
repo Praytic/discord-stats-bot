@@ -1,5 +1,6 @@
-package com.vchernogorov.discordbot
+package com.vchernogorov.discordbot.cache
 
+import com.vchernogorov.discordbot.args.UserStatsArgs
 import net.dv8tion.jda.core.entities.Guild
 import redis.clients.jedis.JedisPool
 import java.util.*

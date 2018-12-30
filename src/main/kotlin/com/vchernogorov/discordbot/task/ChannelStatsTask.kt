@@ -1,8 +1,6 @@
 package com.vchernogorov.discordbot.task
 
-import com.vchernogorov.discordbot.UserStatsArgs
-import net.dv8tion.jda.core.entities.Member
-import net.dv8tion.jda.core.entities.TextChannel
+import com.vchernogorov.discordbot.args.UserStatsArgs
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 
 class ChannelStatsTask : MessagesStatsTask() {

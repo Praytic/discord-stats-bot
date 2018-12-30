@@ -1,10 +1,13 @@
-package com.vchernogorov.discordbot
+package com.vchernogorov.discordbot.args
 
 import com.xenomachina.argparser.ArgParser
 import com.xenomachina.argparser.default
 import org.slf4j.Logger
 
-class MyArgs(parser: ArgParser) {
+/**
+ * Global application arguments are used during initialization.
+ */
+class ApplicationArgs(parser: ArgParser) {
     val fetchDelay by parser.storing(
             "--fetchDelayMillis",
             help = "sets the delay of messages fetching in milliseconds") { toLong() }.default(60 * 1000)
@@ -46,8 +49,13 @@ class MyArgs(parser: ArgParser) {
 
     val cacheExpiration by parser.storing(
             "--cacheExpiration",
-            help = "sets expiration time for any cached value"
-    )
+            help = "sets expiration time in milliseconds for any cached value"
+    ) { toLong() }.default(60*60*24*1000)
+
+    val cacheSchedulerPeriod by parser.storing(
+            "--cacheSchedulerPeriod",
+            help = "sets time period in milliseconds for caching time-consuming transactions"
+    ) { toLong() }.default(60*60*24*1000)
 
     fun printArgs(logger: Logger) {
         logger.info("Fetch delay is set to ${fetchDelay / 1000.0} seconds.")
@@ -58,5 +66,7 @@ class MyArgs(parser: ArgParser) {
         logger.info("Remove original request message is ${if (removeOriginalRequest) "enabled" else "disabled"}.")
         logger.info("Selections result set is limited by $chunkSize size.")
         logger.info("Fetching messages is ${if (fetchMessages) "enabled" else "disabled"}.")
+        logger.info("Cache expiration is set to $cacheExpiration milliseconds.")
+        logger.info("Cache scheduler period is set to $cacheSchedulerPeriod milliseconds.")
     }
 }

@@ -1,7 +1,6 @@
 package com.vchernogorov.discordbot.task
 
 import com.vchernogorov.discordbot.UserMessage
-import com.vchernogorov.discordbot.UserStatsArgs
 import com.vchernogorov.discordbot.send
 import net.dv8tion.jda.core.MessageBuilder
 import net.dv8tion.jda.core.entities.Member

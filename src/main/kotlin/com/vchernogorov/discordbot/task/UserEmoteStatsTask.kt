@@ -1,7 +1,7 @@
 package com.vchernogorov.discordbot.task
 
 import com.vchernogorov.discordbot.UserMessage
-import com.vchernogorov.discordbot.UserStatsArgs
+import com.vchernogorov.discordbot.args.UserStatsArgs
 import com.vchernogorov.discordbot.send
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import org.jetbrains.exposed.sql.and

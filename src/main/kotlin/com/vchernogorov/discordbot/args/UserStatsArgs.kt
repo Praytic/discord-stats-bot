@@ -1,11 +1,13 @@
-package com.vchernogorov.discordbot
+package com.vchernogorov.discordbot.args
 
 import com.xenomachina.argparser.ArgParser
 import com.xenomachina.argparser.default
 import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.Member
-import net.dv8tion.jda.core.entities.TextChannel
 
+/**
+ * General arguments for all tasks.
+ */
 class UserStatsArgs(parser: ArgParser, guild: Guild) {
 
     companion object {
@@ -72,5 +74,5 @@ class UserStatsArgs(parser: ArgParser, guild: Guild) {
             "--tail",
             help = "when active, tail results will be shown instead of top results. " +
                     "Example: --tail"
-    ).default(false)
+    )
 }

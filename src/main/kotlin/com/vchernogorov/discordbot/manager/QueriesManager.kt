@@ -1,13 +1,12 @@
-package com.vchernogorov.discordbot
+package com.vchernogorov.discordbot.manager
 
+import com.vchernogorov.discordbot.TempId
+import com.vchernogorov.discordbot.UserMessage
 import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.Member
 import net.dv8tion.jda.core.entities.TextChannel
 import org.jetbrains.exposed.sql.Query
-import org.jetbrains.exposed.sql.SortOrder
-import org.jetbrains.exposed.sql.alias
 import org.jetbrains.exposed.sql.and
-import org.jetbrains.exposed.sql.max
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.selectAll
 

@@ -1,7 +1,11 @@
-package com.vchernogorov.discordbot
+package com.vchernogorov.discordbot.manager
 
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.vchernogorov.discordbot.TempId
+import com.vchernogorov.discordbot.UserMessage
+import com.vchernogorov.discordbot.args.UserStatsArgs
+import com.vchernogorov.discordbot.cache.CacheManager
 import mu.KotlinLogging
 import net.dv8tion.jda.core.entities.Emote
 import net.dv8tion.jda.core.entities.Guild
@@ -16,9 +20,7 @@ import org.jetbrains.exposed.sql.batchInsert
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.joda.time.DateTime
-import redis.clients.jedis.JedisPool
 import java.sql.ResultSet
-import java.util.*
 import org.joda.time.format.DateTimeFormat
 
 /**

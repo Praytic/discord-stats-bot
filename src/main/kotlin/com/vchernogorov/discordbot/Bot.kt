@@ -1,6 +1,13 @@
 package com.vchernogorov.discordbot
 
 import com.google.gson.Gson
+import com.vchernogorov.discordbot.args.ApplicationArgs
+import com.vchernogorov.discordbot.cache.CacheManager
+import com.vchernogorov.discordbot.cache.CacheScheduler
+import com.vchernogorov.discordbot.listener.FetchMessagesListener
+import com.vchernogorov.discordbot.listener.OwnerCommandListener
+import com.vchernogorov.discordbot.manager.QueriesManager
+import com.vchernogorov.discordbot.manager.TransactionsManager
 import com.xenomachina.argparser.ArgParser
 import mu.KLogger
 import mu.KotlinLogging
@@ -15,10 +22,9 @@ import ratpack.health.HealthCheckHandler
 import ratpack.server.BaseDir
 import ratpack.server.RatpackServer.start
 import redis.clients.jedis.JedisPool
-import redis.clients.jedis.JedisPoolConfig
 import java.net.URI
 
-fun main(args: Array<String>) = ArgParser(args).parseInto(::MyArgs).run {
+fun main(args: Array<String>) = ArgParser(args).parseInto(::ApplicationArgs).run {
     val gson = Gson()
     val logger = KotlinLogging.logger { }
     printArgs(logger)
@@ -44,7 +50,7 @@ fun main(args: Array<String>) = ArgParser(args).parseInto(::MyArgs).run {
         val jda = initJda(listeners)
         val cacheManager = CacheManager(jedisPool)
         transactionsManager.cacheManager = cacheManager
-        val cacheScheduler = CacheScheduler(cacheManager, transactionsManager, jda, gson)
+        val cacheScheduler = CacheScheduler(cacheManager, transactionsManager, jda, gson, cacheSchedulerPeriod)
 
         initDatabase(createSchemas, logger)
         cacheScheduler.start()

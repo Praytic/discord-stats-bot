@@ -1,14 +1,15 @@
 package com.vchernogorov.discordbot.args
 
+import com.vchernogorov.discordbot.Mode
 import com.xenomachina.argparser.ArgParser
 import com.xenomachina.argparser.default
 import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.Member
 
 /**
- * General arguments for all tasks.
+ * General arguments for all handlers.
  */
-class UserStatsArgs(parser: ArgParser, guild: Guild) {
+class UserStatsArgs(parser: ArgParser, guild: Guild, val command: Mode) {
 
     companion object {
         val LIMIT_PRIMARY_RESULTS_MAX = 50

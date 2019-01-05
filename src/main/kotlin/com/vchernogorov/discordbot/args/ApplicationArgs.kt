@@ -47,10 +47,15 @@ class ApplicationArgs(parser: ArgParser) {
             help = "enables loading new and old messages from discord channels to the database"
     )
 
+    val disableCache by parser.flagging(
+            "--disableCache",
+            help = "disables cache for time-consuming transactions"
+    )
+
     val cacheExpiration by parser.storing(
             "--cacheExpiration",
-            help = "sets expiration time in milliseconds for any cached value"
-    ) { toLong() }.default(60*60*24*1000)
+            help = "sets expiration time in seconds for any cached value"
+    ) { toInt() }.default(60*60*24)
 
     val cacheSchedulerPeriod by parser.storing(
             "--cacheSchedulerPeriod",
@@ -66,7 +71,8 @@ class ApplicationArgs(parser: ArgParser) {
         logger.info("Remove original request message is ${if (removeOriginalRequest) "enabled" else "disabled"}.")
         logger.info("Selections result set is limited by $chunkSize size.")
         logger.info("Fetching messages is ${if (fetchMessages) "enabled" else "disabled"}.")
-        logger.info("Cache expiration is set to $cacheExpiration milliseconds.")
+        logger.info("Cache expiration is set to $cacheExpiration seconds.")
         logger.info("Cache scheduler period is set to $cacheSchedulerPeriod milliseconds.")
+        logger.info("Cache is ${if (disableCache) "disabled" else "enabled"}.")
     }
 }

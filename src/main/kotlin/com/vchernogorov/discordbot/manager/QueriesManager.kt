@@ -19,9 +19,19 @@ class QueriesManager(val chunkSize: Int) {
     val chunksEnabled = chunkSize > 0 && chunkSize != Int.MAX_VALUE
 
     /**
-     * Selects [UserMessage]s sliced by [UserMessage.content], [UserMessage.creatorId], [UserMessage.creationDate]
-     * where [UserMessage.creatorId] is in [members] or in [Guild.getMembers] and [UserMessage.channelId] is in
-     * [channels] or in [Guild.getTextChannels].
+     * Selects [UserMessage]s where [UserMessage.creatorId] equals [member]'s id.
+     */
+    fun selectUserMessagesByMemberAndGuild(member: Member, guild: Guild): Query {
+        return UserMessage
+                .select {
+                    UserMessage.creatorId.eq(member.user.id) and
+                            UserMessage.channelId.inList(guild.channels.map { it.id })
+                }
+    }
+
+    /**
+     * Selects [UserMessage]s where [UserMessage.creatorId] is in [members] or in [Guild.getMembers] and
+     * [UserMessage.channelId] is in [channels] or in [Guild.getTextChannels].
      */
     fun selectUserMessagesByMembersAndChannels(guild: Guild, members: List<Member>, channels: List<TextChannel>): Query {
         return UserMessage

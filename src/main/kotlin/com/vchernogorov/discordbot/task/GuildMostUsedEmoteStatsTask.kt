@@ -3,15 +3,18 @@ package com.vchernogorov.discordbot.task
 import com.vchernogorov.discordbot.UserMessage
 import com.vchernogorov.discordbot.args.UserStatsArgs
 import com.vchernogorov.discordbot.send
+import mu.KLogger
 import net.dv8tion.jda.core.MessageBuilder
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
 
-class GuildMostUsedEmoteStatsTask : MessagesStatsTask() {
+class GuildMostUsedEmoteStatsTask : AbstractCommandHandler() {
+    override val logger: KLogger
+        get() = TODO("not implemented") //To change initializer of created properties use File | Settings | File Templates.
 
-    override fun execute(event: MessageReceivedEvent, args: UserStatsArgs) {
+    override fun handle(event: MessageReceivedEvent, args: UserStatsArgs) {
         val emotesUsed = transaction {
             val emoteRegex = "<:(.*?):[0-9]{18}>".toRegex()
             val result = UserMessage.slice(UserMessage.content, UserMessage.creatorId).select {

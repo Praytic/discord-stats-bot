@@ -7,7 +7,7 @@ import net.dv8tion.jda.core.entities.Member
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import java.io.File
 
-fun execute(event: MessageReceivedEvent, vararg params: String) = with(event.guild) {
+fun handle(event: MessageReceivedEvent, vararg params: String) = with(event.guild) {
     val printMode = Mode.valueOf(params[0])
     val textChannels = if (params.isEmpty()) textChannels else params
             .map { name -> getTextChannelsByName(name, true) }

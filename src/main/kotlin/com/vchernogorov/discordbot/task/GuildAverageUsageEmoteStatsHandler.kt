@@ -12,27 +12,30 @@ import org.joda.time.DateTime
 import java.time.Instant
 import java.time.temporal.ChronoUnit
 
-class GuildAverageUsageEmoteStatsTask(val transactionsManager: TransactionsManager) : MessagesStatsTask() {
+/**
+ * Shows how much each emote has been used during specified period or from the creation time.
+ */
+class GuildAverageUsageEmoteStatsHandler(val transactionsManager: TransactionsManager) : AbstractCommandHandler() {
 
-    private val logger = KotlinLogging.logger {}
+    override val logger = KotlinLogging.logger {}
 
-    override fun execute(event: MessageReceivedEvent, args: UserStatsArgs) {
-        logger.debug { "Selecting emotes, creators and creation dates." }
+    override fun handle(event: MessageReceivedEvent, args: UserStatsArgs) {
+        logger.debug { "Selecting emotes, creators and creation dates for guild: ${event.guild}." }
         val emotesUsed = transactionsManager.selectEmotesByCreatorsAndCreationDate(event.guild, args)
 
-        logger.debug { "Gathering the first creation date for each emote." }
+        logger.debug { "Gathering the first creation date for each emote for guild: ${event.guild}." }
         val minCreationDateByEmote = minCreationDateByEmote(event.jda, emotesUsed)
 
-        logger.debug { "Sorting emotes by usage rate." }
+        logger.debug { "Sorting emotes by usage rate for guild: ${event.guild}." }
         val sortedEmotesUsed = sortEmotesByUsageRate(event.jda, emotesUsed, minCreationDateByEmote)
 
-        logger.debug { "Generating discord message with the results." }
+        logger.debug { "Generating discord message with the results for guild: ${event.guild}." }
         val messageBuilder = generateResponseMessage(sortedEmotesUsed, args).stringBuilder
 
         event.send(messageBuilder)
     }
 
-    fun generateResponseMessage(emotesUsed: List<Triple<Emote, Int, Double>>, args: UserStatsArgs): MessageBuilder {
+    private fun generateResponseMessage(emotesUsed: List<Triple<Emote, Int, Double>>, args: UserStatsArgs): MessageBuilder {
         val messageBuilder = MessageBuilder().append("[Emote average usage per day in guild]\n")
         emotesUsed.forEachIndexed { i, (emote, count, usageRate) ->
             if (args.tail && emotesUsed.count() - args.limitPrimaryResults <= i ||

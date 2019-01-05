@@ -8,6 +8,7 @@ import com.vchernogorov.discordbot.listener.FetchMessagesListener
 import com.vchernogorov.discordbot.listener.OwnerCommandListener
 import com.vchernogorov.discordbot.manager.QueriesManager
 import com.vchernogorov.discordbot.manager.TransactionsManager
+import com.vchernogorov.discordbot.task.GenericCommandHandler
 import com.xenomachina.argparser.ArgParser
 import mu.KLogger
 import mu.KotlinLogging
@@ -43,17 +44,21 @@ fun main(args: Array<String>) = ArgParser(args).parseInto(::ApplicationArgs).run
     try {
         val queriesManager = QueriesManager(chunkSize)
         val transactionsManager = TransactionsManager(queriesManager, gson)
-        val listeners = mutableListOf<ListenerAdapter>(OwnerCommandListener(printErrorsToDiscord, removeOriginalRequest, transactionsManager))
+        val commandHandler = GenericCommandHandler(transactionsManager)
+        val ownerCommandListener = OwnerCommandListener(printErrorsToDiscord, removeOriginalRequest, commandHandler)
+        val listeners = mutableListOf<ListenerAdapter>(ownerCommandListener)
         if (fetchMessages) {
             listeners.add(FetchMessagesListener(fetchDelay, backoffRetryDelay, backoffRetryFactor, transactionsManager))
         }
         val jda = initJda(listeners)
-        val cacheManager = CacheManager(jedisPool)
-        transactionsManager.cacheManager = cacheManager
-        val cacheScheduler = CacheScheduler(cacheManager, transactionsManager, jda, gson, cacheSchedulerPeriod)
+        if (!disableCache) {
+            val cacheManager = CacheManager(jedisPool, cacheExpiration)
+            transactionsManager.cacheManager = cacheManager
+            val cacheScheduler = CacheScheduler(cacheManager, transactionsManager, jda, gson, cacheSchedulerPeriod)
+            cacheScheduler.start()
+        }
 
         initDatabase(createSchemas, logger)
-        cacheScheduler.start()
     } catch (e: Throwable) {
         logger.error(e) { "Stopping app because of the initialization error." }
         server.stop()

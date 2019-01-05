@@ -4,11 +4,15 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.vchernogorov.discordbot.TempId
 import com.vchernogorov.discordbot.UserMessage
+import com.vchernogorov.discordbot.UserStat
 import com.vchernogorov.discordbot.args.UserStatsArgs
 import com.vchernogorov.discordbot.cache.CacheManager
+import com.vchernogorov.discordbot.mapper.TopEmoteDailyUsageStatsMapper
+import com.vchernogorov.discordbot.mapper.UserStatsMapper
 import mu.KotlinLogging
 import net.dv8tion.jda.core.entities.Emote
 import net.dv8tion.jda.core.entities.Guild
+import net.dv8tion.jda.core.entities.Member
 import net.dv8tion.jda.core.entities.Message
 import net.dv8tion.jda.core.entities.TextChannel
 import net.dv8tion.jda.core.entities.User
@@ -20,8 +24,8 @@ import org.jetbrains.exposed.sql.batchInsert
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.joda.time.DateTime
-import java.sql.ResultSet
 import org.joda.time.format.DateTimeFormat
+import java.sql.ResultSet
 
 /**
  * Transaction manager contains different transactions for common use in the application.
@@ -30,42 +34,48 @@ import org.joda.time.format.DateTimeFormat
 class TransactionsManager(val queriesManager: QueriesManager,
                           val gson: Gson) {
 
-    private val dateformatter = DateTimeFormat.forPattern("yyyy-MM-dd")
-    private val logger = KotlinLogging.logger {}
-
     lateinit var cacheManager: CacheManager
 
     /**
-     * Returns [Triple] of [User.getId], [Emote.getId] and [Message.getCreationTime]
-     * Results are filtered by [UserStatsArgs.members] and [UserStatsArgs.channels] if they are not empty.
-     * Otherwise results are filtered by [Guild.getMembers] and [Guild.getTextChannels].
+     * Returns [Triple] of [User.getId], [Emote.getId] and [Message.getCreationTime] for every emote in guild.
+     * Returned results may be filtered by a list of members or channels.
+     *
      */
     fun selectEmotesByCreatorsAndCreationDate(guild: Guild, args: UserStatsArgs): List<Triple<String, String, DateTime>> = transaction {
-        val cachedResult = if (::cacheManager.isInitialized) cacheManager.getFromCache("selectEmotesByCreatorsAndCreationDate", guild, args) { value ->
-            val type = object : TypeToken<List<Triple<String, String, String>>>() {}.type
-            val fromJson = gson.fromJson<List<Triple<String, String, String>>>(value, type)
-            fromJson.map {
-                Triple(it.first, it.second, dateformatter.parseDateTime(it.third))
-            }
+        val cachedResult = if (::cacheManager.isInitialized) {
+            cacheManager.getFromCache(guild, args, TopEmoteDailyUsageStatsMapper(gson, guild)::map)
         } else null
         if (cachedResult != null) return@transaction cachedResult
 
-        val botIds = guild.members.filter { it.user.isBot }.map { it.user.id }
-        val emoteRegex = "<:(.*?):[0-9]{18}>".toRegex()
-        val emotesList = selectByChunks(queriesManager.selectUserMessagesByMembersAndChannels(guild, args.members, args.channels)) {
-            it.map {
-                Triple(
-                        it[UserMessage.creatorId],
-                        emoteRegex.findAll(it[UserMessage.content], 0).toList(),
-                        it[UserMessage.creationDate]
-                )
-            }.filter { (creatorId, emotes, _) ->
-                emotes.isNotEmpty() && creatorId != null && !botIds.contains(creatorId)
-            }.map { (creatorId, emotes, creationDate) ->
-                val emoteIds = emotes.map { it.value.dropLast(1).takeLast(18) }
-                emoteIds.map { Triple(creatorId!!, it, creationDate) }
-            }.flatten()
-        }.flatten()
+        val resultRows = queriesManager.selectUserMessagesByMembersAndChannels(guild, args.members, args.channels)
+        val emotesList = if (queriesManager.chunksEnabled) {
+            selectByChunks(resultRows, TopEmoteDailyUsageStatsMapper(gson, guild)::map).flatten()
+        }
+        else {
+            TopEmoteDailyUsageStatsMapper(gson, guild).map(resultRows.toList())
+        }
+
+        if (::cacheManager.isInitialized) {
+            cacheManager.saveToCache(guild, args, TopEmoteDailyUsageStatsMapper(gson, guild).map(emotesList))
+        }
+        emotesList
+    }
+
+    /**
+     * Returns [UserStat] for specified [Member].
+     */
+    fun selectUserStat(member: Member, args: UserStatsArgs): UserStat = transaction {
+        val cachedResult = if (::cacheManager.isInitialized) {
+            cacheManager.getFromCache(member, args, UserStatsMapper(gson, member)::map)
+        } else null
+        if (cachedResult != null) return@transaction cachedResult
+
+        val resultRows = queriesManager.selectUserMessagesByMemberAndGuild(member, member.guild)
+        val emotesList = UserStatsMapper(gson, member).map(resultRows.toList())
+
+        if (::cacheManager.isInitialized) {
+            cacheManager.saveToCache(member, args, UserStatsMapper(gson, member).map(emotesList))
+        }
         emotesList
     }
 
@@ -92,31 +102,6 @@ class TransactionsManager(val queriesManager: QueriesManager,
             it.id to messageId
         }.toMap()
     }
-
-//    fun getSavedMessages(channels: List<TextChannel>, filter: (List<ResultRow>) -> ResultRow?) = transaction {
-//        val map = mutableMapOf<String, String?>()
-//        if (queriesManager.chunksEnabled) {
-//            this@TransactionsManager.logger.debug { "Messages will be fetched by chunks." }
-//            selectByChunks(queriesManager.selectUserMessagesByChannels(channels)).forEach {
-//                val toMap = it.groupBy {
-//                    it[UserMessage.channelId]
-//                }.map { (channelId, resultRows) ->
-//                    channelId to filter(resultRows)?.get(UserMessage.id)
-//                }.toMap()
-//                map.putAll(toMap)
-//            }
-//        } else {
-//            this@TransactionsManager.logger.debug { "Chunked fetching is disabled." }
-//            queriesManager.selectUserMessagesByChannels(channels).groupBy {
-//                it[UserMessage.channelId]
-//            }.map { (channelId, resultRows) ->
-//                channelId to filter(resultRows)?.get(UserMessage.id)
-//            }.forEach { (channelId, maxResultRow) ->
-//                map[channelId] = maxResultRow
-//            }
-//        }
-//        map
-//    }
 
     /**
      * Uploads a collections of [Message]s into [UserMessage] table.

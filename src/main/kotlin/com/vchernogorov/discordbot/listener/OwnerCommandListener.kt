@@ -1,14 +1,7 @@
 package com.vchernogorov.discordbot.listener
 
-import com.vchernogorov.discordbot.Mode
-import com.vchernogorov.discordbot.manager.TransactionsManager
 import com.vchernogorov.discordbot.send
-import com.vchernogorov.discordbot.task.ChannelStatsTask
-import com.vchernogorov.discordbot.task.GuildAverageUsageEmoteStatsTask
-import com.vchernogorov.discordbot.task.GuildMostUsedEmoteStatsTask
-import com.vchernogorov.discordbot.task.UserEmoteStatsTask
-import com.vchernogorov.discordbot.task.UserStatsTask
-import com.vchernogorov.discordbot.task.UsersMostUsedEmoteStatsTask
+import com.vchernogorov.discordbot.task.GenericCommandHandler
 import com.xenomachina.argparser.ShowHelpException
 import mu.KotlinLogging
 import net.dv8tion.jda.core.Permission
@@ -22,34 +15,17 @@ import java.nio.charset.StandardCharsets
 
 class OwnerCommandListener(val printErrorsToDiscord: Boolean,
                            val removeOriginalRequest: Boolean,
-                           transactionsManager: TransactionsManager) : ListenerAdapter() {
-    private val logger = KotlinLogging.logger {}
+                           val genericCommandHandler: GenericCommandHandler) : ListenerAdapter() {
 
-    val tasks = mapOf(
-            Mode.CHANNEL_STATS to ChannelStatsTask(),
-            Mode.USER_STATS to UserStatsTask(),
-            Mode.EMOTE_STATS to UserEmoteStatsTask(),
-            Mode.TOP_EMOTE_USAGE_STATS to GuildMostUsedEmoteStatsTask(),
-            Mode.TOP_USED_EMOTES_BY_USERS to UsersMostUsedEmoteStatsTask(),
-            Mode.TOP_EMOTE_DAILY_USAGE_STATS to GuildAverageUsageEmoteStatsTask(transactionsManager)
-    )
+    private val logger = KotlinLogging.logger {}
 
     override fun onMessageReceived(event: MessageReceivedEvent) {
         if (event.author.isBot) {
             return
         }
 
-        val commands = event.message.contentRaw.split(" ")
-        val params = commands.drop(1).toTypedArray()
-        val command = commands[0]
-        val mode: Mode = try {
-            val mode = Mode.valueOf(command)
-            logger.info { "Command [$command] with params [${params.joinToString(" ")}] was called by [${event.author}]." }
-            mode
-        } catch (e: IllegalArgumentException) {
-            Mode.UNDEFINED
-        }
         try {
+            genericCommandHandler.handle(event)
             if (removeOriginalRequest) {
                 if (PermissionUtil.checkPermission(event.textChannel, event.guild.selfMember, Permission.MESSAGE_MANAGE)) {
                     event.channel.deleteMessageById(event.messageId).queue()
@@ -57,7 +33,6 @@ class OwnerCommandListener(val printErrorsToDiscord: Boolean,
                     logger.warn { "Bot doesn't have ${Permission.MESSAGE_MANAGE} permission. Request message won't be deleted." }
                 }
             }
-            tasks[mode]?.execute(event, *params)
         } catch (se: ShowHelpException) {
             val baos = ByteArrayOutputStream()
             val writer = OutputStreamWriter(baos)

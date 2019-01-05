@@ -2,14 +2,17 @@ package com.vchernogorov.discordbot.task
 
 import com.vchernogorov.discordbot.UserMessage
 import com.vchernogorov.discordbot.args.UserStatsArgs
+import mu.KLogger
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
 
-class UsersMostUsedEmoteStatsTask : MessagesStatsTask() {
+class UsersMostUsedEmoteStatsTask : AbstractCommandHandler() {
+    override val logger: KLogger
+        get() = TODO("not implemented") //To change initializer of created properties use File | Settings | File Templates.
 
-    override fun execute(event: MessageReceivedEvent, args: UserStatsArgs) {
+    override fun handle(event: MessageReceivedEvent, args: UserStatsArgs) {
         val userMostUsedEmoteStatsTask = UserMostUsedEmoteStatsTask()
         val filteredMembers = args.members.map {
             val messagesCount = transaction {

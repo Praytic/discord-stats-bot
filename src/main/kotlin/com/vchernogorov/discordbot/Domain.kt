@@ -8,13 +8,13 @@ import java.time.Period
 data class UserStat(
         val user: String,
         val activePeriod: Period,
-        val activeDays: List<LocalDate>,
+        val daysInGuild: Int,
+        val activeDays: Set<LocalDate>,
         val messages: Int,
         val messageLengthAvg: Double,
         val messagesPerActiveDay: Double,
         val messagesPerDay: Double,
-        val joinDate: OffsetDateTime,
-        val stringOccurrence: Map<String, Int>
+        val joinDate: OffsetDateTime
 )
 
 object TempId : Table() {

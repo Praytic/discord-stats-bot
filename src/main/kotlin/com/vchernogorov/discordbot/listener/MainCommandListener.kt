@@ -1,9 +1,11 @@
 package com.vchernogorov.discordbot.listener
 
+import com.vchernogorov.discordbot.Mode
 import com.vchernogorov.discordbot.send
 import com.vchernogorov.discordbot.task.GenericCommandHandler
 import com.xenomachina.argparser.ShowHelpException
 import mu.KotlinLogging
+import net.dv8tion.jda.core.MessageBuilder
 import net.dv8tion.jda.core.Permission
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import net.dv8tion.jda.core.hooks.ListenerAdapter
@@ -12,6 +14,7 @@ import java.io.ByteArrayOutputStream
 import java.io.OutputStreamWriter
 import java.io.PrintStream
 import java.nio.charset.StandardCharsets
+import java.time.format.DateTimeFormatter
 
 class MainCommandListener(
         val authorizedUsers: List<String>,
@@ -24,6 +27,11 @@ class MainCommandListener(
     override fun onMessageReceived(event: MessageReceivedEvent) {
         val isAuthorizedUser = authorizedUsers.isEmpty() || authorizedUsers.contains(event.author.id)
         if (event.author.isBot && !isAuthorizedUser) {
+            return
+        }
+
+        if (event.message.isMentioned(event.jda.selfUser) && event.message.contentRaw.contains("--help")) {
+            help(event)
             return
         }
 
@@ -55,5 +63,17 @@ class MainCommandListener(
             val data = String(baos.toByteArray(), StandardCharsets.UTF_8)
             logger.error { data }
         }
+    }
+
+    private fun help(event: MessageReceivedEvent) {
+        val messageBuilder = MessageBuilder()
+                .append("`[List of possible commands]`\n")
+                .append("To see possible arguments for each <command> type `<command> --help`.\n")
+                .append("`${Mode.MEMBER_STATS}`: Shows generic statistics for the specified user, like: " +
+                        "how much messages did user created, how often he messaged, average symbols posted in each " +
+                        "message, etc.\n")
+                .append("`${Mode.GUILD_AVG_EMOTE_USAGE}`: Shows how much each emote has been used during " +
+                        "specified time period or from the creation date.\n")
+        event.send(messageBuilder)
     }
 }

@@ -5,7 +5,7 @@ import com.vchernogorov.discordbot.args.ApplicationArgs
 import com.vchernogorov.discordbot.cache.CacheManager
 import com.vchernogorov.discordbot.cache.CacheScheduler
 import com.vchernogorov.discordbot.listener.FetchMessagesListener
-import com.vchernogorov.discordbot.listener.OwnerCommandListener
+import com.vchernogorov.discordbot.listener.MainCommandListener
 import com.vchernogorov.discordbot.manager.QueriesManager
 import com.vchernogorov.discordbot.manager.TransactionsManager
 import com.vchernogorov.discordbot.task.GenericCommandHandler
@@ -45,7 +45,7 @@ fun main(args: Array<String>) = ArgParser(args).parseInto(::ApplicationArgs).run
         val queriesManager = QueriesManager(chunkSize)
         val transactionsManager = TransactionsManager(queriesManager, gson)
         val commandHandler = GenericCommandHandler(transactionsManager)
-        val ownerCommandListener = OwnerCommandListener(printErrorsToDiscord, removeOriginalRequest, commandHandler)
+        val ownerCommandListener = MainCommandListener(authorizedUsers, printErrorsToDiscord, removeOriginalRequest, commandHandler)
         val listeners = mutableListOf<ListenerAdapter>(ownerCommandListener)
         if (fetchMessages) {
             listeners.add(FetchMessagesListener(fetchDelay, backoffRetryDelay, backoffRetryFactor, transactionsManager))

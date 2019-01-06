@@ -13,14 +13,17 @@ import java.io.OutputStreamWriter
 import java.io.PrintStream
 import java.nio.charset.StandardCharsets
 
-class OwnerCommandListener(val printErrorsToDiscord: Boolean,
-                           val removeOriginalRequest: Boolean,
-                           val genericCommandHandler: GenericCommandHandler) : ListenerAdapter() {
+class MainCommandListener(
+        val authorizedUsers: List<String>,
+        val printErrorsToDiscord: Boolean,
+        val removeOriginalRequest: Boolean,
+        val genericCommandHandler: GenericCommandHandler) : ListenerAdapter() {
 
     private val logger = KotlinLogging.logger {}
 
     override fun onMessageReceived(event: MessageReceivedEvent) {
-        if (event.author.isBot) {
+        val isAuthorizedUser = authorizedUsers.isEmpty() || authorizedUsers.contains(event.author.id)
+        if (event.author.isBot && !isAuthorizedUser) {
             return
         }
 

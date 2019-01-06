@@ -2,15 +2,23 @@ package com.vchernogorov.discordbot.args
 
 import com.xenomachina.argparser.ArgParser
 import com.xenomachina.argparser.default
+import net.dv8tion.jda.core.entities.Member
 import org.slf4j.Logger
 
 /**
  * Global application arguments are used during initialization.
  */
 class ApplicationArgs(parser: ArgParser) {
+    val authorizedUsers by parser.storing(
+            "--authorizedUsers",
+            help = "array of users' ids which are permitted to use commands. " +
+                    "If it's empty - everyone is permitted to use commands"
+    ) { this.split(",") }.default(emptyList())
+
     val fetchDelay by parser.storing(
             "--fetchDelayMillis",
-            help = "sets the delay of messages fetching in milliseconds") { toLong() }.default(60 * 1000)
+            help = "sets the delay of messages fetching in milliseconds"
+    ) { toLong() }.default(60 * 1000)
 
     val createSchemas by parser.flagging(
             "--createSchemas",
@@ -63,6 +71,7 @@ class ApplicationArgs(parser: ArgParser) {
     ) { toLong() }.default(60*60*24*1000)
 
     fun printArgs(logger: Logger) {
+        logger.info("Authorized users are ${if (authorizedUsers.isEmpty()) "empty" else authorizedUsers.joinToString(separator = ",") }.")
         logger.info("Fetch delay is set to ${fetchDelay / 1000.0} seconds.")
         logger.info("Create schemas on startup is ${if (createSchemas) "enabled" else "disabled"}.")
         logger.info("Backoff retry delay is set to ${backoffRetryDelay / 60000.0} minutes.")

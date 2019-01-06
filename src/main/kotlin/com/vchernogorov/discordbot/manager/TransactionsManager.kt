@@ -3,12 +3,12 @@ package com.vchernogorov.discordbot.manager
 import com.google.gson.Gson
 import com.vchernogorov.discordbot.TempId
 import com.vchernogorov.discordbot.UserMessage
-import com.vchernogorov.discordbot.UserStat
+import com.vchernogorov.discordbot.MemberStat
 import com.vchernogorov.discordbot.args.GuildStatsArgs
 import com.vchernogorov.discordbot.args.MemberStatsArgs
 import com.vchernogorov.discordbot.cache.CacheManager
 import com.vchernogorov.discordbot.mapper.TopEmoteDailyUsageStatsMapper
-import com.vchernogorov.discordbot.mapper.UserStatsMapper
+import com.vchernogorov.discordbot.mapper.MemberStatsMapper
 import net.dv8tion.jda.core.entities.Emote
 import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.Member
@@ -46,6 +46,10 @@ class TransactionsManager(val queriesManager: QueriesManager,
         if (cachedResult != null) return@transaction cachedResult
 
         val resultRows = queriesManager.selectUserMessagesByMembersAndChannels(guild, args.members, args.channels)
+
+        if (resultRows.toList().isEmpty()) {
+            throw Exception("No emotes found for guild $guild with arguments $args.")
+        }
         val emotesList = if (queriesManager.chunksEnabled) {
             selectByChunks(resultRows, TopEmoteDailyUsageStatsMapper(gson, guild)::map).flatten()
         }
@@ -60,21 +64,39 @@ class TransactionsManager(val queriesManager: QueriesManager,
     }
 
     /**
-     * Returns [UserStat] for specified [Member].
+     * Returns [MemberStat] for specified [Member].
      */
-    fun selectUserStat(member: Member, args: MemberStatsArgs): UserStat = transaction {
+    fun selectMemberStat(member: Member, args: MemberStatsArgs): MemberStat = transaction {
         val cachedResult = if (::cacheManager.isInitialized) {
-            cacheManager.getFromCache(member, args, UserStatsMapper(gson, member)::map)
+            cacheManager.getFromCache(member, args, MemberStatsMapper(gson, member)::map)
         } else null
         if (cachedResult != null) return@transaction cachedResult
 
-        val resultRows = queriesManager.selectUserMessagesByMemberAndGuild(member, member.guild)
-        val emotesList = UserStatsMapper(gson, member).map(resultRows.toList())
+        val query = queriesManager.selectUserMessagesByMemberAndChannels(member, args.channels)
+        val filteredByYears = if (args.years.isNotEmpty()) {
+            query.filter {
+                args.years.contains(it[UserMessage.creationDate].year().get())
+            }
+        } else {
+            query.toList()
+        }
+        val filteredByMonths = if (args.months.isNotEmpty() && args.years.isNotEmpty()) {
+            filteredByYears.filter {
+                args.months.contains(it[UserMessage.creationDate].monthOfYear().get())
+            }
+        } else {
+            filteredByYears
+        }
+
+        if (filteredByMonths.isEmpty()) {
+            throw Exception("No messages found for member $member with arguments $args.")
+        }
+        val memberStat = MemberStatsMapper(gson, member).map(filteredByMonths)
 
         if (::cacheManager.isInitialized) {
-            cacheManager.saveToCache(member, args, UserStatsMapper(gson, member).map(emotesList))
+            cacheManager.saveToCache(member, args, MemberStatsMapper(gson, member).map(memberStat))
         }
-        emotesList
+        memberStat
     }
 
     /**

@@ -21,11 +21,13 @@ class QueriesManager(val chunkSize: Int) {
     /**
      * Selects [UserMessage]s where [UserMessage.creatorId] equals [member]'s id.
      */
-    fun selectUserMessagesByMemberAndGuild(member: Member, guild: Guild): Query {
+    fun selectUserMessagesByMemberAndChannels(
+            member: Member,
+            channels: List<TextChannel> = member.guild.textChannels): Query {
         return UserMessage
                 .select {
                     UserMessage.creatorId.eq(member.user.id) and
-                            UserMessage.channelId.inList(guild.channels.map { it.id })
+                            UserMessage.channelId.inList(channels.map { it.id })
                 }
     }
 
@@ -33,11 +35,14 @@ class QueriesManager(val chunkSize: Int) {
      * Selects [UserMessage]s where [UserMessage.creatorId] is in [members] or in [Guild.getMembers] and
      * [UserMessage.channelId] is in [channels] or in [Guild.getTextChannels].
      */
-    fun selectUserMessagesByMembersAndChannels(guild: Guild, members: List<Member>, channels: List<TextChannel>): Query {
+    fun selectUserMessagesByMembersAndChannels(
+            guild: Guild,
+            members: List<Member> = guild.members,
+            channels: List<TextChannel> = guild.textChannels): Query {
         return UserMessage
                 .select {
-                    (UserMessage.creatorId.inList((if (members.isNotEmpty()) members else guild.members).map { it.user.id })) and
-                            (UserMessage.channelId.inList((if (channels.isNotEmpty()) channels else guild.textChannels).map { it.id }))
+                    UserMessage.creatorId.inList(members.map { it.user.id }) and
+                            UserMessage.channelId.inList(channels.map { it.id })
                 }
     }
 

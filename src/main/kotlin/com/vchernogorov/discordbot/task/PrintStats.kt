@@ -1,7 +1,7 @@
 package com.vchernogorov.discordbot.task
 
 import com.vchernogorov.discordbot.Mode
-import com.vchernogorov.discordbot.UserStat
+import com.vchernogorov.discordbot.MemberStat
 import com.vchernogorov.discordbot.send
 import net.dv8tion.jda.core.entities.Member
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
@@ -27,14 +27,14 @@ fun handle(event: MessageReceivedEvent, vararg params: String) = with(event.guil
             message += "```css\n" + "[Top messages]\n"
             members.forEachIndexed { i, member ->
                 textChannels.forEach { channel ->
-                    val userStats = mutableListOf<UserStat>()
+                    val userStats = mutableListOf<MemberStat>()
                     File("stats/${channel.id}/${member.user.id}.json")
                             .bufferedReader()
                             .use { _in ->
-                                //                val userStat = gson.fromJson<UserStat>(_in.readText())
+                                //                val userStat = gson.fromJson<MemberStat>(_in.readText())
 //                userStats += userStat
                             }
-//           val aggregatedUserStat = UserStat(
+//           val aggregatedUserStat = MemberStat(
 //             userStats.first().user,
 //             userStats.map { it.activePeriod }.reduceRight {acc, it -> acc.plus(it) },
 //             userStats.map { it.activeDays }.flatten().toSet(),

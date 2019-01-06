@@ -74,7 +74,7 @@ class MainCommandListener(
                         "message, etc.\n\n")
                 .append("${Mode.GUILD_AVG_EMOTE_USAGE}: Shows how much each emote has been used during " +
                         "specified time period or from the creation date.\n")
-                .append("```\n")
+                .append("```")
         event.send(messageBuilder)
     }
 }

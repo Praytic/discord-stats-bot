@@ -14,7 +14,7 @@ inline fun <reified T> Gson.fromJson(json: String) =
         this.fromJson<T>(json, object : TypeToken<T>() {}.type)
 
 fun MessageReceivedEvent.send(message: String, useWrap: Boolean = false) {
-    val splittedMessage = message.split("\n")
+    val splittedMessage = (message + "\n").split("\n")
     val maxLength = if (useWrap) 1994 else 2000
     val boundedMessages = splittedMessage.reduceUntil({ acc, s -> acc.length + s.length > maxLength }) { acc, s ->
         acc + "\n" + s

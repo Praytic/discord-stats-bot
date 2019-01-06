@@ -5,7 +5,7 @@ import java.time.LocalDate
 import java.time.OffsetDateTime
 import java.time.Period
 
-data class UserStat(
+data class MemberStat(
         val user: String,
         val activePeriod: Period,
         val daysInGuild: Int,

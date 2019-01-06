@@ -3,14 +3,20 @@ package com.vchernogorov.discordbot.task
 import com.vchernogorov.discordbot.UserMessage
 import com.vchernogorov.discordbot.args.GuildStatsArgs
 import mu.KLogger
+import mu.KLogging
+import mu.KotlinLogging
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.transactions.transaction
 
-class UsersMostUsedEmoteStatsTask : AbstractCommandHandler() {
-    override val logger: KLogger
-        get() = TODO("not implemented") //To change initializer of created properties use File | Settings | File Templates.
+class UsersMostUsedEmoteStatsTask : CommandHandler<GuildStatsArgs> {
+
+    override fun handle(event: MessageReceivedEvent) {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    val logger: KLogger = KotlinLogging.logger { }
 
     override fun handle(event: MessageReceivedEvent, args: GuildStatsArgs) {
         val userMostUsedEmoteStatsTask = UserMostUsedEmoteStatsTask()

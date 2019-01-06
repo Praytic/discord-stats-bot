@@ -14,7 +14,6 @@ import java.io.ByteArrayOutputStream
 import java.io.OutputStreamWriter
 import java.io.PrintStream
 import java.nio.charset.StandardCharsets
-import java.time.format.DateTimeFormatter
 
 class MainCommandListener(
         val authorizedUsers: List<String>,
@@ -30,7 +29,8 @@ class MainCommandListener(
             return
         }
 
-        if (event.message.isMentioned(event.jda.selfUser) && event.message.contentRaw.contains("--help")) {
+        if (event.message.isMentioned(event.jda.selfUser) &&
+                (event.message.contentRaw.contains("-h") || event.message.contentRaw.contains("--help"))) {
             help(event)
             return
         }
@@ -67,13 +67,14 @@ class MainCommandListener(
 
     private fun help(event: MessageReceivedEvent) {
         val messageBuilder = MessageBuilder()
-                .append("`[List of possible commands]`\n")
-                .append("To see possible arguments for each <command> type `<command> --help`.\n")
-                .append("`${Mode.MEMBER_STATS}`: Shows generic statistics for the specified user, like: " +
-                        "how much messages did user created, how often he messaged, average symbols posted in each " +
-                        "message, etc.\n")
-                .append("`${Mode.GUILD_AVG_EMOTE_USAGE}`: Shows how much each emote has been used during " +
+                .append("```[List of possible commands]\n")
+                .append("To see possible arguments for each command add --help argument.\n\n")
+                .append("${Mode.MEMBER_STATS}: Shows generic statistics for the specified user, like: " +
+                        "how much messages user created, how much he creates daily, average symbols posted in each " +
+                        "message, etc.\n\n")
+                .append("${Mode.GUILD_AVG_EMOTE_USAGE}: Shows how much each emote has been used during " +
                         "specified time period or from the creation date.\n")
+                .append("```\n")
         event.send(messageBuilder)
     }
 }

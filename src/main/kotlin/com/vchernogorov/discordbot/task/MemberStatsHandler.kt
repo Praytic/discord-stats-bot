@@ -26,7 +26,7 @@ class MemberStatsHandler(val transactionsManager: TransactionsManager) : Command
         } catch (e: IllegalArgumentException) {
             Mode.UNDEFINED
         }
-        handle(event, ArgParser(emptyArray()).parseInto { MemberStatsArgs(it, event.member, mode) })
+        handle(event, ArgParser(arrayOf()).parseInto { MemberStatsArgs(it, event.member, mode) })
     }
 
     override fun handle(event: MessageReceivedEvent, args: MemberStatsArgs) {

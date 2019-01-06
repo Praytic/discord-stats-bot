@@ -29,13 +29,12 @@ class GenericCommandHandler(transactionsManager: TransactionsManager) : CommandH
             return
         }
 
-        val argParser = ArgParser(params)
-        if (params.isEmpty()) {
+        if (!params.isEmpty()) {
             when (mode) {
                 Mode.MEMBER_STATS -> memberStatsHandler
-                        .handle(event, argParser.parseInto { MemberStatsArgs(it, event.member, mode) })
+                        .handle(event, ArgParser(params).parseInto { MemberStatsArgs(it, event.member, mode) })
                 Mode.GUILD_AVG_EMOTE_USAGE -> guildAverageEmoteUsageStatsHandler
-                        .handle(event, argParser.parseInto { GuildStatsArgs(it, event.guild, mode) })
+                        .handle(event, ArgParser(params).parseInto { GuildStatsArgs(it, event.guild, mode) })
                 else -> throw Exception("Unable to process command $command with params ${params.joinToString(" ")}")
             }
         } else {

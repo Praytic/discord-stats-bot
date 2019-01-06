@@ -12,15 +12,15 @@ class MemberStatsArgs(parser: ArgParser, member: Member, command: Mode) : StatsA
 
     val months by parser.storing(
             "--months",
-            help = "add period restriction for specified months (year parameter is required to be specified). " +
+            help = "add period restriction for specified months (year parameter is required). " +
                     "Example: --months=1,3,12"
-    ) { toInt() }
+    ) { this.split(",").map { toInt() } }.default(emptyList())
 
     val years by parser.storing(
             "--years",
             help = "add period restriction for specified years. " +
                     "Example: --years=2017,2018"
-    ) { toInt() }
+    ) { this.split(",").map { toInt() } }.default(emptyList())
 
     val channels by parser.storing(
             "--channels",

@@ -28,7 +28,7 @@ class GuildAverageUsageEmoteStatsHandler(val transactionsManager: TransactionsMa
         } catch (e: IllegalArgumentException) {
             Mode.UNDEFINED
         }
-        handle(event, ArgParser(emptyArray()).parseInto { GuildStatsArgs(it, event.guild, mode) })
+        handle(event, ArgParser(arrayOf()).parseInto { GuildStatsArgs(it, event.guild, mode) })
     }
 
     override fun handle(event: MessageReceivedEvent, args: GuildStatsArgs) {

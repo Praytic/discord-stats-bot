@@ -1,24 +1,35 @@
 package com.vchernogorov.discordbot.task
 
+import com.vchernogorov.discordbot.Mode
 import com.vchernogorov.discordbot.UserStat
-import com.vchernogorov.discordbot.args.UserStatsArgs
+import com.vchernogorov.discordbot.args.MemberStatsArgs
 import com.vchernogorov.discordbot.manager.TransactionsManager
 import com.vchernogorov.discordbot.send
+import com.xenomachina.argparser.ArgParser
 import mu.KotlinLogging
 import net.dv8tion.jda.core.MessageBuilder
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 import java.time.format.DateTimeFormatter
+import javax.jws.WebParam
 
 /**
  * Shows generic statistics for the specified user, like: how much messages did user created, how often he messaged,
  * average symbols posted in each message, etc.
- * This handler is not affected by [UserStatsArgs] because it returns one object.
  */
-class UserStatsHandler(val transactionsManager: TransactionsManager) : AbstractCommandHandler() {
+class MemberStatsHandler(val transactionsManager: TransactionsManager) : CommandHandler<MemberStatsArgs> {
 
-    override val logger = KotlinLogging.logger {}
+    val logger = KotlinLogging.logger {}
 
-    override fun handle(event: MessageReceivedEvent, args: UserStatsArgs) {
+    override fun handle(event: MessageReceivedEvent) {
+        val mode: Mode = try {
+            Mode.valueOf(event.message.contentRaw)
+        } catch (e: IllegalArgumentException) {
+            Mode.UNDEFINED
+        }
+        handle(event, ArgParser(emptyArray()).parseInto { MemberStatsArgs(it, event.member, mode) })
+    }
+
+    override fun handle(event: MessageReceivedEvent, args: MemberStatsArgs) {
         logger.debug { "Selecting user stat for member: ${event.member}." }
         val userStat = transactionsManager.selectUserStat(event.member, args)
 

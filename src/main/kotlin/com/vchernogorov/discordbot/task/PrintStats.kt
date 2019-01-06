@@ -22,7 +22,7 @@ fun handle(event: MessageReceivedEvent, vararg params: String) = with(event.guil
             }
             .flatten()
     when (printMode) {
-        Mode.USER_STATS -> {
+        Mode.MEMBER_STATS -> {
             var message = ""
             message += "```css\n" + "[Top messages]\n"
             members.forEachIndexed { i, member ->

@@ -1,7 +1,7 @@
 package com.vchernogorov.discordbot.task
 
 import com.vchernogorov.discordbot.UserMessage
-import com.vchernogorov.discordbot.args.UserStatsArgs
+import com.vchernogorov.discordbot.args.GuildStatsArgs
 import com.vchernogorov.discordbot.send
 import mu.KLogger
 import net.dv8tion.jda.core.MessageBuilder
@@ -14,7 +14,7 @@ class GuildMostUsedEmoteStatsTask : AbstractCommandHandler() {
     override val logger: KLogger
         get() = TODO("not implemented") //To change initializer of created properties use File | Settings | File Templates.
 
-    override fun handle(event: MessageReceivedEvent, args: UserStatsArgs) {
+    override fun handle(event: MessageReceivedEvent, args: GuildStatsArgs) {
         val emotesUsed = transaction {
             val emoteRegex = "<:(.*?):[0-9]{18}>".toRegex()
             val result = UserMessage.slice(UserMessage.content, UserMessage.creatorId).select {

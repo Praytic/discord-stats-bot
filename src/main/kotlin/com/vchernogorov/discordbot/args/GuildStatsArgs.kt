@@ -7,9 +7,9 @@ import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.Member
 
 /**
- * General arguments for all handlers.
+ * Arguments for [GuildAverageUsageEmoteStatsHandler].
  */
-class UserStatsArgs(parser: ArgParser, guild: Guild, val command: Mode) {
+class GuildStatsArgs(parser: ArgParser, guild: Guild, command: Mode) : StatsArgs(command) {
 
     companion object {
         val LIMIT_PRIMARY_RESULTS_MAX = 50

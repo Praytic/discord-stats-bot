@@ -1,10 +1,10 @@
 package com.vchernogorov.discordbot.cache
 
-import com.vchernogorov.discordbot.args.UserStatsArgs
+import com.vchernogorov.discordbot.args.GuildStatsArgs
+import com.vchernogorov.discordbot.args.MemberStatsArgs
 import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.Member
 import redis.clients.jedis.JedisPool
-import java.util.*
 
 /**
  * Cache manager consists of common methods for working with [JedisPool].
@@ -16,7 +16,7 @@ class CacheManager(val jedisPool: JedisPool, val cacheExpiration: Int) {
      * and converts it to [T] type using provided [mapper].
      * Returns the value associated with the key or null if no value found by the generated key.
      */
-    fun <T> getFromCache(guild: Guild, args: UserStatsArgs, mapper: (String) -> T): T? {
+    fun <T> getFromCache(guild: Guild, args: GuildStatsArgs, mapper: (String) -> T): T? {
         return jedisPool.resource.use {
             val key = "${args.command}/${guild.id}"
             val value = it.get(key)
@@ -29,7 +29,7 @@ class CacheManager(val jedisPool: JedisPool, val cacheExpiration: Int) {
      * and converts it to [T] type using provided [mapper].
      * Returns the value associated with the key or null if no value found by the generated key.
      */
-    fun <T> getFromCache(member: Member, args: UserStatsArgs, mapper: (String) -> T): T? {
+    fun <T> getFromCache(member: Member, args: MemberStatsArgs, mapper: (String) -> T): T? {
         return jedisPool.resource.use {
             val key = "${args.command}/${member.user.id}"
             val value = it.get(key)
@@ -42,7 +42,7 @@ class CacheManager(val jedisPool: JedisPool, val cacheExpiration: Int) {
      * Expiration time of the cached value is set by [MyArgs.cacheExpiration] parameter.
      * Returns generated key.
      */
-    fun saveToCache(member: Member, args: UserStatsArgs, value: String): String {
+    fun saveToCache(member: Member, args: MemberStatsArgs, value: String): String {
         return jedisPool.resource.use {
             val key = "${args.command}/${member.guild.id}/${member.user.id}"
             it.set(key, value)
@@ -56,7 +56,7 @@ class CacheManager(val jedisPool: JedisPool, val cacheExpiration: Int) {
      * Expiration time of the cached value is set by [MyArgs.cacheExpiration] parameter.
      * Returns generated key.
      */
-    fun saveToCache(guild: Guild, args: UserStatsArgs, value: String): String {
+    fun saveToCache(guild: Guild, args: GuildStatsArgs, value: String): String {
         return jedisPool.resource.use {
             val key = "${args.command}/${guild.id}"
             it.set(key, value)

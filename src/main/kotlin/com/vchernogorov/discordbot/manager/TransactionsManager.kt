@@ -1,15 +1,14 @@
 package com.vchernogorov.discordbot.manager
 
 import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import com.vchernogorov.discordbot.TempId
 import com.vchernogorov.discordbot.UserMessage
 import com.vchernogorov.discordbot.UserStat
-import com.vchernogorov.discordbot.args.UserStatsArgs
+import com.vchernogorov.discordbot.args.GuildStatsArgs
+import com.vchernogorov.discordbot.args.MemberStatsArgs
 import com.vchernogorov.discordbot.cache.CacheManager
 import com.vchernogorov.discordbot.mapper.TopEmoteDailyUsageStatsMapper
 import com.vchernogorov.discordbot.mapper.UserStatsMapper
-import mu.KotlinLogging
 import net.dv8tion.jda.core.entities.Emote
 import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.Member
@@ -24,7 +23,6 @@ import org.jetbrains.exposed.sql.batchInsert
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transaction
 import org.joda.time.DateTime
-import org.joda.time.format.DateTimeFormat
 import java.sql.ResultSet
 
 /**
@@ -41,7 +39,7 @@ class TransactionsManager(val queriesManager: QueriesManager,
      * Returned results may be filtered by a list of members or channels.
      *
      */
-    fun selectEmotesByCreatorsAndCreationDate(guild: Guild, args: UserStatsArgs): List<Triple<String, String, DateTime>> = transaction {
+    fun selectEmotesByCreatorsAndCreationDate(guild: Guild, args: GuildStatsArgs): List<Triple<String, String, DateTime>> = transaction {
         val cachedResult = if (::cacheManager.isInitialized) {
             cacheManager.getFromCache(guild, args, TopEmoteDailyUsageStatsMapper(gson, guild)::map)
         } else null
@@ -64,7 +62,7 @@ class TransactionsManager(val queriesManager: QueriesManager,
     /**
      * Returns [UserStat] for specified [Member].
      */
-    fun selectUserStat(member: Member, args: UserStatsArgs): UserStat = transaction {
+    fun selectUserStat(member: Member, args: MemberStatsArgs): UserStat = transaction {
         val cachedResult = if (::cacheManager.isInitialized) {
             cacheManager.getFromCache(member, args, UserStatsMapper(gson, member)::map)
         } else null

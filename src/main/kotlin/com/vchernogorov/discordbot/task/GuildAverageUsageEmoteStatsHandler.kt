@@ -1,8 +1,11 @@
 package com.vchernogorov.discordbot.task
 
+import com.vchernogorov.discordbot.Mode
 import com.vchernogorov.discordbot.manager.TransactionsManager
-import com.vchernogorov.discordbot.args.UserStatsArgs
+import com.vchernogorov.discordbot.args.GuildStatsArgs
+import com.vchernogorov.discordbot.args.MemberStatsArgs
 import com.vchernogorov.discordbot.send
+import com.xenomachina.argparser.ArgParser
 import mu.KotlinLogging
 import net.dv8tion.jda.core.JDA
 import net.dv8tion.jda.core.MessageBuilder
@@ -15,11 +18,20 @@ import java.time.temporal.ChronoUnit
 /**
  * Shows how much each emote has been used during specified period or from the creation time.
  */
-class GuildAverageUsageEmoteStatsHandler(val transactionsManager: TransactionsManager) : AbstractCommandHandler() {
+class GuildAverageUsageEmoteStatsHandler(val transactionsManager: TransactionsManager) : CommandHandler<GuildStatsArgs> {
 
-    override val logger = KotlinLogging.logger {}
+    val logger = KotlinLogging.logger {}
 
-    override fun handle(event: MessageReceivedEvent, args: UserStatsArgs) {
+    override fun handle(event: MessageReceivedEvent) {
+        val mode: Mode = try {
+            Mode.valueOf(event.message.contentRaw)
+        } catch (e: IllegalArgumentException) {
+            Mode.UNDEFINED
+        }
+        handle(event, ArgParser(emptyArray()).parseInto { GuildStatsArgs(it, event.guild, mode) })
+    }
+
+    override fun handle(event: MessageReceivedEvent, args: GuildStatsArgs) {
         logger.debug { "Selecting emotes, creators and creation dates for guild: ${event.guild}." }
         val emotesUsed = transactionsManager.selectEmotesByCreatorsAndCreationDate(event.guild, args)
 
@@ -35,7 +47,7 @@ class GuildAverageUsageEmoteStatsHandler(val transactionsManager: TransactionsMa
         event.send(messageBuilder)
     }
 
-    private fun generateResponseMessage(emotesUsed: List<Triple<Emote, Int, Double>>, args: UserStatsArgs): MessageBuilder {
+    private fun generateResponseMessage(emotesUsed: List<Triple<Emote, Int, Double>>, args: GuildStatsArgs): MessageBuilder {
         val messageBuilder = MessageBuilder().append("[Emote average usage per day in guild]\n")
         emotesUsed.forEachIndexed { i, (emote, count, usageRate) ->
             if (args.tail && emotesUsed.count() - args.limitPrimaryResults <= i ||

@@ -5,6 +5,7 @@ import com.vchernogorov.discordbot.args.MemberStatsArgs
 import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.Member
 import redis.clients.jedis.JedisPool
+import java.util.*
 
 /**
  * Cache manager consists of common methods for working with [JedisPool].
@@ -31,7 +32,12 @@ class CacheManager(val jedisPool: JedisPool, val cacheExpiration: Int) {
      */
     fun <T> getFromCache(member: Member, args: MemberStatsArgs, mapper: (String) -> T): T? {
         return jedisPool.resource.use {
-            val key = "${args.command}/${member.user.id}"
+            val key = if (args.compare.isEmpty()) {
+                "${args.command}/${member.user.id}"
+            } else {
+                val membersHash = Math.abs(Arrays.hashCode(args.compare.map { it.user.id }.toTypedArray()))
+                "${args.command}/${member.user.id}/$membersHash"
+            }
             val value = it.get(key)
             if (value == null) null else  mapper.invoke(value)
         }
@@ -44,7 +50,12 @@ class CacheManager(val jedisPool: JedisPool, val cacheExpiration: Int) {
      */
     fun saveToCache(member: Member, args: MemberStatsArgs, value: String): String {
         return jedisPool.resource.use {
-            val key = "${args.command}/${member.guild.id}/${member.user.id}"
+            val key = if (args.compare.isEmpty()) {
+                "${args.command}/${member.user.id}"
+            } else {
+                val compareHash = Math.abs(Arrays.hashCode(args.compare.map { it.user.id }.toTypedArray()))
+                "${args.command}/${member.user.id}/$compareHash"
+            }
             it.set(key, value)
             it.expire(key, cacheExpiration)
             key

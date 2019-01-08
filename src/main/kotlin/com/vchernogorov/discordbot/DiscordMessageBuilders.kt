@@ -1,5 +1,6 @@
 package com.vchernogorov.discordbot
 
+import com.vchernogorov.discordbot.args.StringOccurrenceArgs
 import net.dv8tion.jda.core.MessageBuilder
 
 fun memberStatMessage(memberStat: MemberStat) = MessageBuilder()
@@ -10,6 +11,28 @@ fun memberStatMessage(memberStat: MemberStat) = MessageBuilder()
         .append("**Messages per active day:** ${memberStat.messagesPerActiveDay.toInt()} messages\n")
         .append("**Days in guild:** ${memberStat.daysInGuild} days\n")
         .append("**Active days:** ${memberStat.activeDays.size} days\n")
+
+fun stringOccurrencesMessage(occurrencesByMember: Map<String, Long>, args: StringOccurrenceArgs): MessageBuilder {
+    val messageBuilder = MessageBuilder()
+            .append("[String occurrence stats for ${args.strings.map {
+                it.joinToString(separator = "&") }.joinToString(separator = "|")
+            }]\n")
+
+    occurrencesByMember
+            .toList()
+            .sortedByDescending { it.second }
+            .forEachIndexed { i, (creatorId, count) ->
+                if (args.tail && occurrencesByMember.count() - args.limitPrimaryResults <= i ||
+                        !args.tail && args.limitPrimaryResults > i) {
+                    messageBuilder
+                            .append("${i + 1}. ")
+                            .append(creatorId)
+                            .append(": `$count`\n")
+                }
+            }
+    return messageBuilder
+}
+
 
 fun memberStatCompareMessage(memberStat: MemberStat, memberStats: List<MemberStat>): MessageBuilder {
     val allStats = memberStats + memberStat
@@ -26,7 +49,13 @@ fun memberStatCompareMessage(memberStat: MemberStat, memberStats: List<MemberSta
     return messageBuilder
 }
 
-private fun genericStatCompareMessage(title: String, messageBuilder: MessageBuilder, allStats: List<MemberStat>, memberStat: MemberStat, postfix: String, getField: (MemberStat) -> Int) {
+private fun genericStatCompareMessage(
+        title: String,
+        messageBuilder: MessageBuilder,
+        allStats: List<MemberStat>,
+        memberStat: MemberStat,
+        postfix: String,
+        getField: (MemberStat) -> Int) {
     messageBuilder.append("**$title:**\n")
     allStats.sortedByDescending {
         getField(it)
@@ -38,6 +67,6 @@ private fun genericStatCompareMessage(title: String, messageBuilder: MessageBuil
         } else {
             ""
         }
-        messageBuilder.append("${i+1}. ${compareStat.user}: ${getField(compareStat)} $comparisonResult\n")
+        messageBuilder.append("${i + 1}. ${compareStat.user}: ${getField(compareStat)} $comparisonResult\n")
     }
 }

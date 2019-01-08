@@ -1,6 +1,5 @@
 package com.vchernogorov.discordbot.task
 
-import com.vchernogorov.discordbot.Mode
 import com.vchernogorov.discordbot.args.StatsArgs
 import net.dv8tion.jda.core.events.message.MessageReceivedEvent
 

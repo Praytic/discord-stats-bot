@@ -7,6 +7,7 @@ import net.dv8tion.jda.core.entities.Member
 import net.dv8tion.jda.core.entities.TextChannel
 import org.jetbrains.exposed.sql.Query
 import org.jetbrains.exposed.sql.and
+import org.jetbrains.exposed.sql.or
 import org.jetbrains.exposed.sql.select
 import org.jetbrains.exposed.sql.selectAll
 
@@ -17,6 +18,30 @@ import org.jetbrains.exposed.sql.selectAll
 class QueriesManager(val chunkSize: Int) {
 
     val chunksEnabled = chunkSize > 0 && chunkSize != Int.MAX_VALUE
+
+    /**
+     * Selects [UserMessage]s where [UserMessage.content] contains specified string.
+     */
+    fun selectUserMessagesByStringOccurrence(
+            strings: List<List<String>>,
+            guild: Guild,
+            members: List<Member> = guild.members,
+            channels: List<TextChannel> = guild.textChannels): Query {
+        return UserMessage
+                .select {
+                    strings.map {
+                        it.map {
+                            UserMessage.content.like("%$it%")
+                        }.reduceRight { op, acc ->
+                            acc and op
+                        }
+                    }.reduceRight { op, acc ->
+                        acc or op
+                    } and
+                            UserMessage.creatorId.inList(members.map { it.user.id }) and
+                            UserMessage.channelId.inList(channels.map { it.id })
+                }
+    }
 
     /**
      * Selects [UserMessage]s where [UserMessage.creatorId] equals [member]'s id.
@@ -69,7 +94,6 @@ class QueriesManager(val chunkSize: Int) {
                     }
                     .orderBy(UserMessage.creationDate, true)
                     .limit(1)
-
 
     fun findMessageIdByMaxCreationDate(channel: TextChannel) =
             UserMessage

@@ -48,7 +48,7 @@ class GuildAverageUsageEmoteStatsHandler(val transactionsManager: TransactionsMa
     }
 
     private fun generateResponseMessage(emotesUsed: List<Triple<Emote, Int, Double>>, args: GuildStatsArgs): MessageBuilder {
-        val messageBuilder = MessageBuilder().append("[Emote average usage per day in guild]\n")
+        val messageBuilder = MessageBuilder().append("`[Emote average usage per day in guild]`\n")
         emotesUsed.forEachIndexed { i, (emote, count, usageRate) ->
             if (args.tail && emotesUsed.count() - args.limitPrimaryResults <= i ||
                     !args.tail && args.limitPrimaryResults > i) {

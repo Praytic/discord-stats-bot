@@ -6,9 +6,11 @@ import com.vchernogorov.discordbot.UserMessage
 import com.vchernogorov.discordbot.MemberStat
 import com.vchernogorov.discordbot.args.GuildStatsArgs
 import com.vchernogorov.discordbot.args.MemberStatsArgs
+import com.vchernogorov.discordbot.args.StringOccurrenceArgs
 import com.vchernogorov.discordbot.cache.CacheManager
 import com.vchernogorov.discordbot.mapper.TopEmoteDailyUsageStatsMapper
 import com.vchernogorov.discordbot.mapper.MemberStatsMapper
+import com.vchernogorov.discordbot.mapper.StringOccurrenceMapper
 import net.dv8tion.jda.core.entities.Emote
 import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.Member
@@ -37,7 +39,38 @@ class TransactionsManager(val queriesManager: QueriesManager,
     /**
      * Returns [Triple] of [User.getId], [Emote.getId] and [Message.getCreationTime] for every emote in guild.
      * Returned results may be filtered by a list of members or channels.
-     *
+     */
+    fun countStringOccurrencesByMember(guild: Guild, args: StringOccurrenceArgs): Map<String, Long> = transaction {
+        val cachedResult = if (::cacheManager.isInitialized) {
+            cacheManager.getFromCache(guild, args, StringOccurrenceMapper(gson, guild, args.strings)::map)
+        } else null
+        if (cachedResult != null) return@transaction cachedResult
+
+        val resultRows = queriesManager.selectUserMessagesByStringOccurrence(args.strings, guild, args.members, args.channels)
+
+        if (resultRows.toList().isEmpty()) {
+            throw Exception("No messages found for guild $guild with arguments $args.")
+        }
+        val emotesList = if (queriesManager.chunksEnabled) {
+            val resultMap = mutableMapOf<String, Long>()
+            selectByChunks(resultRows, StringOccurrenceMapper(gson, guild, args.strings)::map).forEach {
+                resultMap.putAll(it)
+            }
+            resultMap
+        }
+        else {
+            StringOccurrenceMapper(gson, guild, args.strings).map(resultRows.toList())
+        }
+
+        if (::cacheManager.isInitialized) {
+            cacheManager.saveToCache(guild, args, StringOccurrenceMapper(gson, guild, args.strings).map(emotesList))
+        }
+        emotesList
+    }
+
+    /**
+     * Returns [Triple] of [User.getId], [Emote.getId] and [Message.getCreationTime] for every emote in guild.
+     * Returned results may be filtered by a list of members or channels.
      */
     fun selectEmotesByCreatorsAndCreationDate(guild: Guild, args: GuildStatsArgs): List<Triple<String, String, DateTime>> = transaction {
         val cachedResult = if (::cacheManager.isInitialized) {
